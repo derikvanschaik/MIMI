@@ -128,7 +128,7 @@ def main():
 	layout = [
 
 			[sg.Input('', key = '-INPUT-', enable_events = True, text_color = bg_color, background_color =bg_color),
-			 sg.Button('Connect Boxes', key='-CONNECT-')],
+			 sg.Button('Connect Boxes', key='-CONNECT-'),sg.Button('Erase Last', key='-ERASE-'), sg.Button('Erase All', key='-ERASE-ALL-')],
 			[sg.Graph((1000, 600), (0,0), (100,100), key = '-GRAPH-', enable_events=True)]
 	]
 
@@ -142,6 +142,13 @@ def main():
 		canvas = window['-GRAPH-']
 		if event == sg.WIN_CLOSED:
 			break
+
+		elif event.startswith('-ERASE-'):
+			canvas = window['-GRAPH-']
+			if '-ALL-' in event: #the user wishes to clear all canvas elements
+				canvas.erase() 
+			else:
+				print("deleting singular text element")
 
 		elif event == '-GRAPH-':
 			click_location = values[event]
