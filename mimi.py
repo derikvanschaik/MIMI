@@ -117,6 +117,7 @@ def connect_selected_text_boxes(canvas, text_objects):
 	line_id = canvas.draw_line(box1_loc, box2_loc, color = 'black')
 	deselect_connected_boxes(canvas, box1, box2)
 	canvas.send_figure_to_back(line_id)
+	return line_id # we will want to have this so that we can delete the lines later...thanks for making me think of this @Mike. 
 
 def change_input_cursor_color(widget, color):
 	widget.Widget.config(insertbackground=color)
@@ -137,6 +138,7 @@ def main():
 
 	clicked_areas = []
 	text_objects = []
+	lines = [] 
 	while True:
 		event, values = window.read()
 		canvas = window['-GRAPH-']
@@ -146,9 +148,21 @@ def main():
 		elif event.startswith('-ERASE-'):
 			canvas = window['-GRAPH-']
 			if '-ALL-' in event: #the user wishes to clear all canvas elements
-				canvas.erase() 
+				canvas.erase()
+				clicked_areas.clear()
+				text_objects.clear() 
 			else:
-				print("deleting singular text element")
+				if text_objects: 
+					last_text_box = text_objects.pop()
+					location = last_text_box.get_location()
+					last_text_box.delete_text(canvas)
+					last_text_box.delete_text_box(canvas)
+					# this deletes the line attached to the text box we just deleted 
+					for fig in canvas.get_figures_at_location(location):
+						if fig in lines:
+							line = lines.pop(lines.index(fig))
+							canvas.delete_figure(line)
+					
 
 		elif event == '-GRAPH-':
 			click_location = values[event]
@@ -180,7 +194,8 @@ def main():
 			if len(selected_text_boxes) != 2: #Only two boxes should be connected at a time 
 				sg.popup("Not enough or too many boxes have been selected for connecting.")
 			else:
-				connect_selected_text_boxes(canvas, selected_text_boxes)
+				line = connect_selected_text_boxes(canvas, selected_text_boxes)
+				lines.append(line)
 			
 	window.close()
 
