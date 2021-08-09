@@ -8,3 +8,8 @@ Here is a gif DEMO of the application I got thanks to mike @ PySimpleGUI:
 A beta-version of a more versatile version of MIMI! Newest and best feauture is now the ability to drag elements! Working on bringing persistence to the mix and hopefully a whole bunch of other stuff. Check out a small demo for now. 
 
 ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2demo.gif)
+
+Another Demo for those who can't read the teeny tiny text in the demo above:
+
+![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2demo02.gif)
+
