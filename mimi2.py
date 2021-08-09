@@ -74,9 +74,11 @@ def main():
     user_input = sg.Input('', key="-INPUT-", enable_events=True, text_color= bg_color, background_color=bg_color) 
     drag_button = sg.Button('Drag Mode Off', key = "-DRAG-", button_color = ("black", "green"))
     connect_button = sg.Button("Connect Boxes", key = "-CONNECT-",  button_color= ("black", "grey"), disabled = True) 
-    delete_button = sg.Button("Delete selected figures", key = "-DELETE-", button_color = ("black", "grey"), disabled = True) 
+    delete_button = sg.Button("Delete selected figures", key = "-DELETE-", button_color = ("black", "grey"), disabled = True)
+    font_size_slider = sg.Slider(range=(5 , 30), default_value=16,  enable_events=True, key="-FONT-SIZE-", orientation="horizontal")
+    
     # Build the final layout 
-    layout = [[ drag_button, connect_button, delete_button], [tabs] , [user_input]]
+    layout = [[ drag_button, connect_button, delete_button, sg.T("Font Size: "), font_size_slider], [tabs] , [user_input]]
     window = sg.Window('mimi 2', layout).finalize()
     user_input.set_cursor(cursor_color=bg_color) # this is what makes this element invisible. 
     # global variables 
@@ -93,7 +95,10 @@ def main():
         event, values = window.read()
 
         if event == sg.WIN_CLOSED:
-            break 
+            break
+        if event == "-FONT-SIZE-":
+            font_size = int(values[event]) 
+
         if event == "-DRAG-":
             cur_tab = "Dragging Off" if cur_tab == "Dragging On" else "Dragging On" # toggle the current tab
             drag_mode = cur_tab == "Dragging On"
