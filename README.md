@@ -5,8 +5,13 @@ Here is a gif DEMO of the application I got thanks to mike @ PySimpleGUI:
 
 ### Youtube Demo: *https://www.youtube.com/watch?v=-A8MNtmSox8&lc=Ugz1rYYvkx0_VwCoCj14AaABAg*
 # MIMI 2
-A beta-version of a more versatile version of MIMI! Newest and best feature is now the ability to drag elements! Working on bringing persistence to the mix and hopefully a whole bunch of other stuff. Check out a small demo for now. 
+A beta-version of a more versatile version of MIMI! Newest and best feature is now the ability to drag elements! Working on bringing persistence to the mix and hopefully a whole bunch of other stuff. 
 
+Demos for the file that currently under mimi2a.py for now. 
+
+![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2ademo01.gif)
+
+Demos for mimi2.py:
 ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2demo.gif)
 
 Another Demo for those who can't read the teeny tiny text in the demo above:
