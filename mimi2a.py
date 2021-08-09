@@ -1,4 +1,5 @@
 import PySimpleGUI as sg
+import fonts 
 
 # param types: tuple, dict, PysimpleGUI graph widget 
 # Deletes textbox figures and the text bounding box 
@@ -169,8 +170,10 @@ def main():
     connect_button = sg.Button("Connect Boxes", key = "-CONNECT-",  button_color= ("black", "grey"), disabled = True) 
     delete_button = sg.Button("Delete selected figures", key = "-DELETE-", button_color = ("black", "grey"), disabled = True)
     font_size_slider = sg.Slider(range=(5 , 30), default_value=16,  enable_events=True, key="-FONT-SIZE-", orientation="horizontal")
+    # fonts = get_font_list() 
+    fonts_menu = sg.Combo(['default', 'no fun', 'yeehaw'], default_value='default', readonly=True)
     # Build the final layout 
-    layout = [[ drag_button, connect_button, delete_button, sg.T("Font Size: "), font_size_slider], [tabs] , [user_input]]
+    layout = [[ drag_button, connect_button, delete_button, sg.T("Font Size: "), font_size_slider, fonts_menu], [tabs] , [user_input]]
     window = sg.Window('mimi 2', layout).finalize()
     user_input.set_cursor(cursor_color=bg_color) # this is what makes this element invisible. 
     # global variables 
@@ -363,15 +366,17 @@ def main():
                 del figures[text_figure]
                 del figures_on_drag_canvas[text_figs_on_drag[i]]
 
-        # update button colors and visiblities after all events have occured 
+        # update button colors and visiblities after all events have occured
+        # we do not want any of these to be enabled when in drag mode -- drag mode is strictly 
+        # reserved for dragging events ! 
         selected_text_boxes = get_selected_text_figures(figures)
         window['-CONNECT-'].update(
             disabled = not len(selected_text_boxes) == 2, 
-            button_color = ("black", "yellow") if len(selected_text_boxes) == 2 else ("black", "grey")
+            button_color = ("black", "yellow") if len(selected_text_boxes) == 2  and cur_tab == "Dragging Off" else ("black", "grey") 
             )
         window['-DELETE-'].update(
             disabled = not len(selected_text_boxes) > 0, 
-            button_color = ("white", "red") if len(selected_text_boxes) >0 else ("black", "grey")
+            button_color = ("white", "red") if len(selected_text_boxes) >0 and cur_tab == "Dragging Off" else ("black", "grey")
             ) 
 
     window.close() 
