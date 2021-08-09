@@ -41,6 +41,7 @@ def get_figures_on_drag_ids(list_of_figures, figures_on_drag_canvas): # canvas p
             ids.append(figure) 
     return ids
 
+# ** DEAD CODE THAT WORKS WELL SO KEEPING IT AS REFERENCE ** 
 def get_locations_of_line(line_id, figures, figures_on_drag_canvas ):
     ref_ids = []
     for figure in figures.keys():
@@ -55,8 +56,16 @@ def get_locations_of_line(line_id, figures, figures_on_drag_canvas ):
             locations.append(location)
             fig_ids.append(figure)
 
-    return locations + ref_ids + fig_ids 
+    return locations + ref_ids + fig_ids
 
+def get_lines_at_location(location, figures):
+    lines = [] 
+    for figure in figures.keys():
+        if figures[figure]["type"] == "line": 
+            loc1, loc2 = figures[figure]["locations"]
+            if loc1 == location or loc2 == location:
+                lines.append(figure)
+    return lines 
 
 # Deletes the selected bounding box of the screen - note it does not 
 # turn the 'selected' property to False in the dictionary 
@@ -92,6 +101,7 @@ def main():
     figures_on_drag_canvas = {} # dictionary keeping track of figures drawn onto canvas where dragging is enabled ! 
     drag_hotspot = None # global variable so we can have a drag hotspot to help user see where the dragging hotspot is -- ie where they should distance their
     # text box from others within this radius!
+    line_count = 0 # experimenting this with line drawing 
     while True:
         event, values = window.read()
 
@@ -178,38 +188,70 @@ def main():
                     canvas.relocate_figure(bounding_box, x, y) # relocate the texts bounding box using same coordinaes 
                     # update the main canvas location of that figure since we relocated it
                     figures_on_drag_canvas[figure]["main-canvas-location"] = click_location
+                    # update lines 
+                    lines = get_lines_at_location(figure_location, figures) 
+                    for line in lines:
+                        moving_location_idx = figures[line]["locations"].index(figure_location)
+                        # change the moving loc reference in dict of line
+                        if moving_location_idx == 0:
+                            figures[line]["locations"] = ( 
+                                click_location, 
+                                figures[line]["locations"][1]
+                            )
+                        else:
+                            figures[line]["locations"] = (  
+                                figures[line]["locations"][0],
+                                click_location,
+                            )
+
+                        point1, point2 = figures[line]["locations"] # variables referencing where new location and previous location where we will draw a new line at 
+                        previous_lines = figures[line]["line-ids"] 
+                        line_on_main, line_on_drag = previous_lines
+                        # delete and redraw lines and assign their new id to line ids property 
+                        canvas.delete_figure(line_on_main)
+                        canvas_with_drag.delete_figure(line_on_drag)
+                        figures[line]["line-ids"] = (
+                            canvas.draw_line(point1, point2), 
+                            canvas_with_drag.draw_line(point1, point2) 
+                        )
+                        # send lines to back 
+                        line_on_main, line_on_drag = figures[line]["line-ids"]
+                        canvas.send_figure_to_back(line_on_main)
+                        canvas_with_drag.send_figure_to_back(line_on_drag )
+
+                    #*****DEAD CODE THAT WORKS WELL WITH CONNECT SO KEEPING IT AS REFERENCE ******** # 
                     # relocate the lines attached to the figures which are being dragged
                     # probably will be the root of a key error bug later on 
-                    drag_line = figures_on_drag_canvas[figure]['line-reference']
-                    main_line = figures[main_canvas_reference_figure]['line-reference']
-                    [location1, location2, ref1, ref2, fig1, fig2] = get_locations_of_line(main_line, figures, figures_on_drag_canvas)
-                    moving_loc = None 
-                    fixed_loc = None 
-                    if figure_location == location1:
-                        moving_loc = location1 
-                        fixed_loc = location2 
-                    else:
-                        moving_loc = location2
-                        fixed_loc = location1 
-                    # delete the figures 
-                    canvas_with_drag.delete_figure(drag_line)
-                    canvas.delete_figure(main_line)
-                    drag_line = canvas_with_drag.draw_line(moving_loc, fixed_loc)
-                    main_line = canvas.draw_line(moving_loc, fixed_loc)
-                    canvas_with_drag.send_figure_to_back(drag_line)
-                    canvas.send_figure_to_back(main_line)
-                    # line reference now needs to be updated with new drag line and main line id
-                    figures_on_drag_canvas[figure]['line-reference'] = drag_line
-                    figures[main_canvas_reference_figure]['line-reference'] = main_line 
-                    # need to do this with the other box or figure that references a line that no longer exists now 
-                    figs = [fig1, fig2]
-                    figs.remove(figure)
-                    other_fig_drag = figs.pop()
-                    refs = [ref1, ref2]
-                    refs.remove(main_canvas_reference_figure)
-                    other_fig_main = refs.pop()
-                    figures_on_drag_canvas[other_fig_drag]['line-reference'] = drag_line 
-                    figures[other_fig_main]['line-reference'] = main_line 
+                    # drag_line = figures_on_drag_canvas[figure]['line-reference']
+                    # main_line = figures[main_canvas_reference_figure]['line-reference']
+                    # [location1, location2, ref1, ref2, fig1, fig2] = get_locations_of_line(main_line, figures, figures_on_drag_canvas)
+                    # moving_loc = None 
+                    # fixed_loc = None 
+                    # if figure_location == location1:
+                    #     moving_loc = location1 
+                    #     fixed_loc = location2 
+                    # else:
+                    #     moving_loc = location2
+                    #     fixed_loc = location1 
+                    # # delete the figures 
+                    # canvas_with_drag.delete_figure(drag_line)
+                    # canvas.delete_figure(main_line)
+                    # drag_line = canvas_with_drag.draw_line(moving_loc, fixed_loc)
+                    # main_line = canvas.draw_line(moving_loc, fixed_loc)
+                    # canvas_with_drag.send_figure_to_back(drag_line)
+                    # canvas.send_figure_to_back(main_line)
+                    # # line reference now needs to be updated with new drag line and main line id
+                    # figures_on_drag_canvas[figure]['line-reference'] = drag_line
+                    # figures[main_canvas_reference_figure]['line-reference'] = main_line 
+                    # # need to do this with the other box or figure that references a line that no longer exists now 
+                    # figs = [fig1, fig2]
+                    # figs.remove(figure)
+                    # other_fig_drag = figs.pop()
+                    # refs = [ref1, ref2]
+                    # refs.remove(main_canvas_reference_figure)
+                    # other_fig_main = refs.pop()
+                    # figures_on_drag_canvas[other_fig_drag]['line-reference'] = drag_line 
+                    # figures[other_fig_main]['line-reference'] = main_line 
 
 
                 
@@ -275,13 +317,22 @@ def main():
             # turn selected property for each figure in figures dict to false 
             figures[fig1]['selected'] = False 
             figures[fig2]['selected'] = False 
-            # create new property: line-reference to keep track of the line -- both figures will have it in both reference point dics 
-            figures[fig1]['line-reference'] = line_on_main
-            figures[fig2]['line-reference'] = line_on_main
+            # create new property: line-reference to keep track of the line -- both figures will have it in both reference point dics
+            figures[f"line-{line_count}"] = {
+                                        "type":"line", 
+                                        "locations": (loc1, loc2),
+                                        "line-ids": (line_on_main, line_on_drag)  
+                                    }
+            line_count += 1 # increment line count 
 
-            [drag_fig1, drag_fig2] = get_figures_on_drag_ids([fig1, fig2], figures_on_drag_canvas) 
-            figures_on_drag_canvas[drag_fig1]['line-reference'] = line_on_drag 
-            figures_on_drag_canvas[drag_fig2]['line-reference'] = line_on_drag 
+
+            #*****DEAD CODE THAT WORKS WELL WITH CONNECT SO KEEPING IT AS REFERENCE ******** # 
+            # figures[fig1]['line-reference'] = line_on_main
+            # figures[fig2]['line-reference'] = line_on_main
+
+            # [drag_fig1, drag_fig2] = get_figures_on_drag_ids([fig1, fig2], figures_on_drag_canvas) 
+            # figures_on_drag_canvas[drag_fig1]['line-reference'] = line_on_drag 
+            # figures_on_drag_canvas[drag_fig2]['line-reference'] = line_on_drag 
             
             
         
