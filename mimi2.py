@@ -60,7 +60,8 @@ def remove_selected_bounding_box(figures, figure, canvas):
 
 
 def main():
-    sg.theme(sg.theme_list()[100])
+    sg.theme("Material2") 
+    bg_color = sg.theme_background_color() 
     # canvas is our main canvas which we do most of the drawing onto 
     canvas = sg.Graph((700,600), (0,0), (500, 500), enable_events=True, key='-CANVAS-', background_color="white")
     # we need a new canvas object to enable dragging 
@@ -70,13 +71,14 @@ def main():
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]] )
     drag_tab = sg.Tab('Dragging On', [[canvas_with_drag]], visible=False) 
     tabs = sg.TabGroup([[no_drag_tab, drag_tab]]) 
-    user_input = sg.Input('', key="-INPUT-", enable_events=True)
+    user_input = sg.Input('', key="-INPUT-", enable_events=True, text_color= bg_color, background_color=bg_color) 
     drag_button = sg.Button('Drag Mode Off', key = "-DRAG-", button_color = ("black", "green"))
     connect_button = sg.Button("Connect Boxes", key = "-CONNECT-",  button_color= ("black", "grey"), disabled = True) 
     delete_button = sg.Button("Delete selected figures", key = "-DELETE-", button_color = ("black", "grey"), disabled = True) 
     # Build the final layout 
-    layout = [[ user_input, drag_button, connect_button, delete_button], [tabs]  ]
-    window = sg.Window('mimi 2', layout).finalize() 
+    layout = [[ drag_button, connect_button, delete_button], [tabs] , [user_input]]
+    window = sg.Window('mimi 2', layout).finalize()
+    user_input.set_cursor(cursor_color=bg_color) # this is what makes this element invisible. 
     # global variables 
     cur_tab = 'Dragging Off' # tracks the current tab the user is on -- changes when user goes in and out of drag mode 
     click_location = (50, 50) # tracks the last clicked location - chose an arbitrary location as a defuault loc to begin writing if user doesn't click before writing. 
