@@ -1,5 +1,5 @@
 import PySimpleGUI as sg
-import fonts 
+from fonts import fonts_list 
 
 # param types: tuple, dict, PysimpleGUI graph widget 
 # Deletes textbox figures and the text bounding box 
@@ -86,11 +86,11 @@ def update_drag_canvas_dict(figures_on_drag_canvas, text, new_text_id_drag, boun
                                             }
 
 # Returns -> None 
-def draw_text_and_box_figures(text,click_location, font_size, canvas, figures, canvas_with_drag, figures_on_drag_canvas ):
+def draw_text_and_box_figures(text,click_location, font, font_size, canvas, figures, canvas_with_drag, figures_on_drag_canvas ):
     # create new figures to draw at location on main canvas, the figures which are the user text and the corresponding bounding box. 
     # text = values[event]
     print("IN draw and text box figures! ") 
-    new_text_id  = canvas.draw_text(text, click_location, font = f"default {font_size}",  text_location=sg.TEXT_LOCATION_LEFT)
+    new_text_id  = canvas.draw_text(text, click_location, font = f"{font} {font_size}",  text_location=sg.TEXT_LOCATION_LEFT)
     top_left, bott_right  = canvas.get_bounding_box(new_text_id)
     bounding_box_id = canvas.draw_rectangle(top_left, bott_right, fill_color = "white", line_color="red")
     canvas.send_figure_to_back(bounding_box_id)
@@ -98,7 +98,7 @@ def draw_text_and_box_figures(text,click_location, font_size, canvas, figures, c
     update_main_canvas_dict(figures, new_text_id, bounding_box_id, text)
     # create new figures to draw at location on drag canvas. We need these to be drawn so that when user goes 
     # into drag mode, these widgets will be present on the drag canvas when they move them. 
-    new_text_id_drag = canvas_with_drag.draw_text(text, click_location,  font = f"default {font_size}", text_location=sg.TEXT_LOCATION_LEFT)
+    new_text_id_drag = canvas_with_drag.draw_text(text, click_location,  font = f"{font} {font_size}", text_location=sg.TEXT_LOCATION_LEFT)
         # same location as on main canvas so need to re init top_left and bott_right variables 
     bounding_box_id_drag = canvas_with_drag.draw_rectangle(top_left, bott_right, fill_color = "white", line_color="red")
     canvas_with_drag.send_figure_to_back(bounding_box_id_drag) 
@@ -170,8 +170,8 @@ def main():
     connect_button = sg.Button("Connect Boxes", key = "-CONNECT-",  button_color= ("black", "grey"), disabled = True) 
     delete_button = sg.Button("Delete selected figures", key = "-DELETE-", button_color = ("black", "grey"), disabled = True)
     font_size_slider = sg.Slider(range=(5 , 30), default_value=16,  enable_events=True, key="-FONT-SIZE-", orientation="horizontal")
-    # fonts = get_font_list() 
-    fonts_menu = sg.Combo(['default', 'no fun', 'yeehaw'], default_value='default', readonly=True)
+    available_fonts = ["default"]+fonts_list[:7] # seems to be an error that I can't quite fix yet with other fonts and bounding boxes? 
+    fonts_menu = sg.Combo(available_fonts , default_value='default', readonly=True, enable_events=True, key="-FONT-")
     # Build the final layout 
     layout = [[ drag_button, connect_button, delete_button, sg.T("Font Size: "), font_size_slider, fonts_menu], [tabs] , [user_input]]
     window = sg.Window('mimi 2', layout).finalize()
@@ -185,12 +185,38 @@ def main():
     # text box from others within this radius!
     line_count = 0 # experimenting this with line drawing
     font_size = 16
+    font = 'default' # current font 
 
     while True:
         event, values = window.read()
 
         if event == sg.WIN_CLOSED:
             break
+        if event == '-FONT-':
+            font = values['-FONT-']
+            selected_text_figs = get_selected_text_figures(figures)
+            for figure in selected_text_figs:
+                [drag_figure] = get_figures_on_drag_ids([figure], figures_on_drag_canvas) # get corresponding figure on drag canvas
+                location = figures_on_drag_canvas[drag_figure]["main-canvas-location"] # location of figure
+                text = figures[figure]["text"] 
+                # need to delete the bounding box of figure on canvas 
+                remove_selected_bounding_box(figures, figure, canvas ) 
+                delete_previous_drawn_figures(location, figures, canvas) # delete text figure on main canvas
+                delete_previous_drawn_figures(location, figures_on_drag_canvas, canvas_with_drag) # delete corresponding figure on drag canvas
+                # this function will drag both figures on both canvases and update both their dictionaries 
+                new_text_id, new_text_id_drag = draw_text_and_box_figures(
+                    text, location, font, font_size, canvas, figures,
+                    canvas_with_drag, figures_on_drag_canvas
+                )
+                # need to update figures selected property
+                figures[new_text_id]["selected"] = True 
+                figures_on_drag_canvas[new_text_id_drag]['selected'] = True 
+                # Need to redraw the bounding box for selected figures in selected_text_figs 
+                draw_bounding_box(canvas, new_text_id, figures)
+                # also need to update the lines that are at that location on the canvas 
+                # note there is no difference between fig location and location argument so we just keep them the same 
+                update_lines(location, location, figures, canvas, canvas_with_drag)
+
         if event == "-FONT-SIZE-":
             font_size = int(values[event])
             selected_text_figs = get_selected_text_figures(figures)
@@ -206,7 +232,7 @@ def main():
                 delete_previous_drawn_figures(location, figures_on_drag_canvas, canvas_with_drag) # delete corresponding figure on drag canvas
                 # this function will drag both figures on both canvases and update both their dictionaries 
                 new_text_id, new_text_id_drag = draw_text_and_box_figures(
-                    text, location, font_size, canvas, figures,
+                    text, location, font, font_size, canvas, figures,
                     canvas_with_drag, figures_on_drag_canvas
                 )
                 # need to update figures selected property
@@ -303,7 +329,7 @@ def main():
             # create new figures to draw at location on main canvas, the figures which are the user text and the corresponding bounding box. 
             text = values[event]
             draw_text_and_box_figures(
-                text, click_location, font_size, canvas, figures,
+                text, click_location, font, font_size, canvas, figures,
                 canvas_with_drag, figures_on_drag_canvas
                 )
 
