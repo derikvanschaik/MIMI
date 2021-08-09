@@ -34,29 +34,12 @@ def get_location_of_figures(list_of_figures, figures_on_drag_canvas):
 # helper function used in '-CONNECT-' event 
 def get_figures_on_drag_ids(list_of_figures, figures_on_drag_canvas): # canvas param being used for debugging
     ids = []
-    print(list_of_figures)
+    # print(list_of_figures)
     for figure in figures_on_drag_canvas.keys():
         ref_id = figures_on_drag_canvas[figure]["main-canvas-reference"] 
         if ref_id in list_of_figures:
             ids.append(figure) 
     return ids
-
-# ** DEAD CODE THAT WORKS WELL SO KEEPING IT AS REFERENCE ** 
-def get_locations_of_line(line_id, figures, figures_on_drag_canvas ):
-    ref_ids = []
-    for figure in figures.keys():
-        if figures[figure]['line-reference'] == line_id:
-            ref_ids.append(figure) 
-    # find the location of the ref id in the drag dict
-    locations = []
-    fig_ids = [] 
-    for figure in figures_on_drag_canvas.keys():
-        if figures_on_drag_canvas[figure]['main-canvas-reference'] in ref_ids:
-            location = figures_on_drag_canvas[figure]['main-canvas-location']
-            locations.append(location)
-            fig_ids.append(figure)
-
-    return locations + ref_ids + fig_ids
 
 def get_lines_at_location(location, figures):
     lines = [] 
@@ -219,41 +202,6 @@ def main():
                         canvas.send_figure_to_back(line_on_main)
                         canvas_with_drag.send_figure_to_back(line_on_drag )
 
-                    #*****DEAD CODE THAT WORKS WELL WITH CONNECT SO KEEPING IT AS REFERENCE ******** # 
-                    # relocate the lines attached to the figures which are being dragged
-                    # probably will be the root of a key error bug later on 
-                    # drag_line = figures_on_drag_canvas[figure]['line-reference']
-                    # main_line = figures[main_canvas_reference_figure]['line-reference']
-                    # [location1, location2, ref1, ref2, fig1, fig2] = get_locations_of_line(main_line, figures, figures_on_drag_canvas)
-                    # moving_loc = None 
-                    # fixed_loc = None 
-                    # if figure_location == location1:
-                    #     moving_loc = location1 
-                    #     fixed_loc = location2 
-                    # else:
-                    #     moving_loc = location2
-                    #     fixed_loc = location1 
-                    # # delete the figures 
-                    # canvas_with_drag.delete_figure(drag_line)
-                    # canvas.delete_figure(main_line)
-                    # drag_line = canvas_with_drag.draw_line(moving_loc, fixed_loc)
-                    # main_line = canvas.draw_line(moving_loc, fixed_loc)
-                    # canvas_with_drag.send_figure_to_back(drag_line)
-                    # canvas.send_figure_to_back(main_line)
-                    # # line reference now needs to be updated with new drag line and main line id
-                    # figures_on_drag_canvas[figure]['line-reference'] = drag_line
-                    # figures[main_canvas_reference_figure]['line-reference'] = main_line 
-                    # # need to do this with the other box or figure that references a line that no longer exists now 
-                    # figs = [fig1, fig2]
-                    # figs.remove(figure)
-                    # other_fig_drag = figs.pop()
-                    # refs = [ref1, ref2]
-                    # refs.remove(main_canvas_reference_figure)
-                    # other_fig_main = refs.pop()
-                    # figures_on_drag_canvas[other_fig_drag]['line-reference'] = drag_line 
-                    # figures[other_fig_main]['line-reference'] = main_line 
-
-
                 
         if event == "-INPUT-": 
             # delete previously drawn figures at location on main canvas 
@@ -324,18 +272,37 @@ def main():
                                         "line-ids": (line_on_main, line_on_drag)  
                                     }
             line_count += 1 # increment line count 
-
-
-            #*****DEAD CODE THAT WORKS WELL WITH CONNECT SO KEEPING IT AS REFERENCE ******** # 
-            # figures[fig1]['line-reference'] = line_on_main
-            # figures[fig2]['line-reference'] = line_on_main
-
-            # [drag_fig1, drag_fig2] = get_figures_on_drag_ids([fig1, fig2], figures_on_drag_canvas) 
-            # figures_on_drag_canvas[drag_fig1]['line-reference'] = line_on_drag 
-            # figures_on_drag_canvas[drag_fig2]['line-reference'] = line_on_drag 
-            
-            
         
+        if event == "-DELETE-":
+            selected_text_figs = get_selected_text_figures(figures)
+            text_figs_on_drag = get_figures_on_drag_ids(selected_text_boxes, figures_on_drag_canvas)
+            for i, text_figure in enumerate(selected_text_boxes):
+
+                remove_selected_bounding_box(figures, text_figure, canvas)
+                # delete text 
+                canvas.delete_figure(text_figure)
+                canvas_with_drag.delete_figure( text_figs_on_drag[i])
+                # delete textbox 
+                canvas.delete_figure(
+                    figures[text_figure]['bounding-box'] 
+                )
+                canvas_with_drag.delete_figure(
+                    figures_on_drag_canvas[ text_figs_on_drag[i] ]['bounding-box'] 
+                )
+                # get their locations to delete attached lines 
+                location = figures_on_drag_canvas[ text_figs_on_drag[i] ]["main-canvas-location"] 
+                lines = get_lines_at_location(location, figures)
+                for line in lines:
+                    line_id_main, line_id_drag = figures[line]["line-ids"]  
+                    canvas.delete_figure(line_id_main)
+                    canvas_with_drag.delete_figure(line_id_drag)
+                    # delete line reference from figures dict 
+                    del figures[line] 
+
+                # delete text figure references from main canvas and drag canvas dictionaries 
+                del figures[text_figure]
+                del figures_on_drag_canvas[text_figs_on_drag[i]]
+
         # update button colors and visiblities after all events have occured 
         selected_text_boxes = get_selected_text_figures(figures)
         window['-CONNECT-'].update(
