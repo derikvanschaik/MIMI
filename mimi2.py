@@ -86,7 +86,9 @@ def main():
     figures_on_drag_canvas = {} # dictionary keeping track of figures drawn onto canvas where dragging is enabled ! 
     drag_hotspot = None # global variable so we can have a drag hotspot to help user see where the dragging hotspot is -- ie where they should distance their
     # text box from others within this radius!
-    line_count = 0 # experimenting this with line drawing 
+    line_count = 0 # experimenting this with line drawing
+    font_size = 16 
+    
     while True:
         event, values = window.read()
 
@@ -212,7 +214,7 @@ def main():
             delete_previous_drawn_figures(click_location, figures_on_drag_canvas, canvas_with_drag) 
             # create new figures to draw at location on main canvas, the figures which are the user text and the corresponding bounding box. 
             text = values[event]
-            new_text_id  = canvas.draw_text(text, click_location, text_location=sg.TEXT_LOCATION_LEFT)
+            new_text_id  = canvas.draw_text(text, click_location, font = f"default {font_size}",  text_location=sg.TEXT_LOCATION_LEFT)
             top_left, bott_right  = canvas.get_bounding_box(new_text_id)
             bounding_box_id = canvas.draw_rectangle(top_left, bott_right, fill_color = "white", line_color="red")
             canvas.send_figure_to_back(bounding_box_id)
@@ -227,7 +229,7 @@ def main():
                                      }
             # create new figures to draw at location on drag canvas. We need these to be drawn so that when user goes 
             # into drag mode, these widgets will be present on the drag canvas when they move them. 
-            new_text_id_drag = canvas_with_drag.draw_text(text, click_location,  text_location=sg.TEXT_LOCATION_LEFT)
+            new_text_id_drag = canvas_with_drag.draw_text(text, click_location,  font = f"default {font_size}", text_location=sg.TEXT_LOCATION_LEFT)
              # same location as on main canvas so need to re init top_left and bott_right variables 
             bounding_box_id_drag = canvas_with_drag.draw_rectangle(top_left, bott_right, fill_color = "white", line_color="red")
             canvas_with_drag.send_figure_to_back(bounding_box_id_drag) 
