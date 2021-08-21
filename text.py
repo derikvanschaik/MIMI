@@ -89,7 +89,10 @@ class Text:
     def delete_bounding_box(self):
         # deletes and resets bounding box to None 
         self.canvas.delete_figure(self.bounding_box_id)
-        self.bounding_box_id = None 
+        self.bounding_box_id = None
+        # may need to delete selected box as well 
+        if self.selected_box_id:
+            self.delete_selected_box()
     
     def get_font_size(self):
         return self.font_size
