@@ -119,11 +119,11 @@ def enable_and_disable_buttons_and_inputs(drag_button_text, user_input, selected
 def main():
     #layout widgets 
     canvas = sg.Graph(
-        (700, 600), (0,0), (500, 500), key='-CANVAS-',
+        (800, 600), (0,0), (500, 500), key='-CANVAS-',
         background_color='white', enable_events=True, 
         )
     canvas_drag = sg.Graph(
-        (700, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
+        (800, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
         background_color='white', enable_events=True,drag_submits=True,
         )
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
@@ -137,10 +137,11 @@ def main():
     window = sg.Window('carriage return tester', layout).finalize() 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
     # global event variables 
-    location = None
+    location = None 
     texts = [] # list of text box figures drawn onto the main canvas (the non-draggable canvas)
     texts_to_others = {} # for each textbox we have a corresponding text box figure drawn onto the other canvas -this maps the two.
     texts_to_lines = {} # maps text objects to a list of line objects which are 'connected' to these textboxes. 
+    canvas.set_focus() # we want focus away from input to stop a bug
 
     while True: 
         event , values = window.read()
@@ -174,9 +175,7 @@ def main():
                                 line.move_line((x_click, y_click), line.loc2 )
                             else:
                                 line.move_line(line.loc1, (x_click, y_click) )
-                    
 
-                    
 
         if event.startswith("-INPUT-"):
             # we only want to execute this code when NOT in drag mode 
@@ -186,9 +185,10 @@ def main():
                     window['-INPUT-'].update( 
                             values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
                                 )
+
+                user_text = values['-INPUT-']
+                text_at_click_location = get_text_box_at_location(location, texts)
                 try:
-                    user_text = values['-INPUT-']
-                    text_at_click_location = get_text_box_at_location(location, texts)
                     if text_at_click_location is None: # no text at current location, user is trying to create a new textbox here. 
                         # create new text onto both canvases 
                         text_at_click_location = Text(location, canvas)
@@ -197,7 +197,7 @@ def main():
                         texts_to_others[text_at_click_location] = text_on_drag_canvas
                         texts.append(text_at_click_location) # append it to list for tracking 
                     else:
-                        text_at_click_location.put_lines(user_text)
+                        
                         delete_text_box(text_at_click_location) 
                         delete_text_box(texts_to_others[text_at_click_location])  
                         # this is required for a subtle reason -- when rewriting into text boxes 
@@ -206,11 +206,12 @@ def main():
                         # rewriting the same text into a new textbox somewhere near. This is the solution to this bug: 
                         location = text_at_click_location.get_location()
 
+                    text_at_click_location.put_lines(user_text) 
                     draw_text_box(text_at_click_location, user_text)
                     draw_text_box(texts_to_others[text_at_click_location], user_text)  
 
                 except Exception as e:
-                    sg.popup(f"This action returned the following error: \n\t'{e}'.\nYou probably forgot to click where you want to type!")
+                    print(e) # logging error to output for now 
         
         if event == "Delete":
             delete_selected_text_boxes(texts, texts_to_others, texts_to_lines)
