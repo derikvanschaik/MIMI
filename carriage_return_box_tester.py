@@ -317,12 +317,12 @@ def main():
                     # line objects
                     for line_rep in textbox_rep['line_objects']:
                         line = None
-                        duplicate_tup = (line_rep['canvas_key'], line_rep['loc1'], line_rep['loc2']) 
+                        duplicate_tup = (line_rep['canvas_key'], tuple(line_rep['loc1']), tuple(line_rep['loc2']) ) 
                         if duplicate_tup not in same_lines_tracker: # first time we have seen this line 
                             if line_rep['canvas_key'] == '-CANVAS-':
-                                line = Line(canvas, line_rep['loc1'], line_rep['loc2'])
+                                line = Line(canvas, tuple(line_rep['loc1']) , tuple(line_rep['loc2']) )
                             else:
-                                line = Line(canvas_drag, line_rep['loc1'], line_rep['loc2'])
+                                line = Line(canvas_drag, tuple(line_rep['loc1']), tuple(line_rep['loc2']) )
                             same_lines_tracker[duplicate_tup] = line # reference this line 
                         else:
                             line = same_lines_tracker[duplicate_tup] 
@@ -331,9 +331,8 @@ def main():
                             texts_to_lines[text_on_canvas] = []
 
                         texts_to_lines[text_on_canvas].append(line)
-                        
-                        if not line: 
-                            line.draw_line()  
+                        if not line.is_line_drawn(): 
+                            line.draw_line() 
 
             else:
                 sg.popup("No saved canvas to load :/")

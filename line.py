@@ -35,6 +35,9 @@ class Line:
             self.delete_line() 
             self.draw_line()
     
+    def is_line_drawn(self):
+        return self.id != None 
+    
     def __str__(self):
         return f"this line currently has line id: {self.id}" 
 
