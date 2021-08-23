@@ -89,15 +89,14 @@ def main():
         )
     canvas_drag = sg.Graph(
         (700, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
-        background_color='white', enable_events=True,drag_submits=True,  
+        background_color='white', enable_events=True,drag_submits=True,
         )
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
-    drag_tab = sg.Tab('Dragging On', [[canvas_drag]])
-    tabs = sg.TabGroup([[drag_tab, no_drag_tab]])
+    drag_tab = sg.Tab('Dragging On', [[canvas_drag]], visible = False ) 
+    tabs = sg.TabGroup([[no_drag_tab, drag_tab]])
     user_input = sg.Input('', key="-INPUT-", enable_events=True)
     layout = [[user_input, sg.Button("Delete"), sg.Button("connect selected boxes")], [tabs]]
-    window = sg.Window('carriage return tester', layout).finalize()
-
+    window = sg.Window('carriage return tester', layout).finalize() 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
     location = None
     texts = [] # list of text box figures drawn onto the main canvas (the non-draggable canvas)
@@ -144,7 +143,7 @@ def main():
                     # and the textbox happens to be a multiple line textbox: if you backspace to a previous line 
                     # the older location of a click may sometimes no longer be valid and cause a bug where 
                     # rewriting the same text into a new textbox somewhere near. This is the solution to this bug: 
-                    location = text_at_click_location.location
+                    location = text_at_click_location.get_location() 
 
                 draw_text_box(text_at_click_location, user_text)
                 draw_text_box(texts_to_others[text_at_click_location], user_text)  
