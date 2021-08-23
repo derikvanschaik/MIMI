@@ -1,3 +1,4 @@
+from tkinter.constants import S
 import PySimpleGUI as sg
 from text import Text
 from line import Line 
@@ -58,6 +59,13 @@ def move_text_box(textbox, new_location):
 def get_selected_text_boxes(textboxes):
     return [textbox for textbox in textboxes if textbox.get_selected() ] 
 
+# helper method for deleting selected text boxes 
+def delete_lines(selected_textboxes, texts_to_lines):
+    for textbox in selected_textboxes:
+        if textbox in texts_to_lines: # not all textboxes are connected 
+            for line in texts_to_lines[textbox]:
+                line.delete_line() #delete line from canvas 
+ 
 # event handler for 'delete' event
 def delete_selected_text_boxes(texts, texts_to_others, texts_to_lines):
     # delete the boxes from canvases 
@@ -65,18 +73,16 @@ def delete_selected_text_boxes(texts, texts_to_others, texts_to_lines):
     drag_textboxes = [texts_to_others[textbox] for textbox in selected_textboxes]  
     delete_text_boxes(selected_textboxes)
     delete_text_boxes(drag_textboxes)
-    # delete the references from texts and texts_to_others trackers. 
+    delete_lines(selected_textboxes, texts_to_lines)
+    #remove all references 
     for textbox in selected_textboxes:
-        texts.remove(textbox)
+        # remove all references 
+        texts.remove(textbox) 
         del texts_to_others[textbox]
-        lines_to_remove = [] # for reference to quickly delete 
-        for line in texts_to_lines[textbox]:
-            line.delete_line()
-            lines_to_remove.append(line)
-        # once we remove the lines we want to remove the lines from the list of lines attached to that
-        # given textbox 
-        for line in lines_to_remove:
-            texts_to_lines[textbox].remove(line)
+        if textbox in texts_to_lines: 
+            del texts_to_lines[textbox] 
+
+        
 
 def connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canvas_drag):
     loc1, loc2 = (textbox.get_location() for textbox in selected_textboxes)
@@ -86,9 +92,9 @@ def connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canv
     line_drag.draw_line() 
     for textbox in selected_textboxes:
         if textbox not in texts_to_lines:
-            texts_to_lines[textbox] = [] 
+            texts_to_lines[textbox] = []  
 
-        texts_to_lines[textbox] += [line_drag, line_main]  # extending array of lines to text to lines dict 
+        texts_to_lines[textbox] += [line_main, line_drag]  # extending array of lines to text to lines dict 
         textbox.delete_selected_box() # delete the selected box 
         textbox.toggle_selected() # now false
 
@@ -103,7 +109,12 @@ def switch_tabs(drag_button, drag_tab, no_drag_tab):
         drag_tab.update(visible=False)
         no_drag_tab.select() 
         no_drag_tab.update(visible=True) 
-        drag_button.update(text = f"Drag mode: OFF")   
+        drag_button.update(text = f"Drag mode: OFF")
+
+def enable_and_disable_buttons_and_inputs(drag_button_text, user_input, selected_texts, delete_button, connect_button):
+    user_input.update( disabled = (drag_button_text == "Drag mode: ON") ) # want to disable user input if in drag mode
+    delete_button.update( disabled = not(len(selected_texts) > 0) )
+    connect_button.update( disabled = not(len(selected_texts) == 2 ) ) 
 
 def main():
     #layout widgets 
@@ -118,8 +129,11 @@ def main():
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
     drag_tab = sg.Tab('Dragging On', [[canvas_drag]], visible = False ) 
     tabs = sg.TabGroup([[no_drag_tab, drag_tab]])
+    connect_button = sg.Button("Delete")
+    delete_button = sg.Button("connect selected boxes")
+    drag_mode_button = sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-")
     user_input = sg.Input('', key="-INPUT-", enable_events=True) 
-    layout = [[user_input,sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-"), sg.Button("Delete"), sg.Button("connect selected boxes")], [tabs]]
+    layout = [[user_input,drag_mode_button, connect_button, delete_button], [tabs]]
     window = sg.Window('carriage return tester', layout).finalize() 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
     # global event variables 
@@ -128,8 +142,9 @@ def main():
     texts_to_others = {} # for each textbox we have a corresponding text box figure drawn onto the other canvas -this maps the two.
     texts_to_lines = {} # maps text objects to a list of line objects which are 'connected' to these textboxes. 
 
-    while True:
+    while True: 
         event , values = window.read()
+        # print(texts_to_lines, texts_to_others, texts)  
         if event == sg.WIN_CLOSED:
             break
         if event == '-RETURN-CHARACTER-':
@@ -151,59 +166,71 @@ def main():
                     # move both textboxes on both canvases 
                     move_text_box(main_textbox, new_location)
                     move_text_box(drag_textbox, new_location)  
-                    # delete_text_box(drag_textbox)
-                    # drag_textbox.change_location(new_location) 
-                    # draw_text_box(drag_textbox, None) # draw textbox at new location
-                    for line in texts_to_lines[main_textbox]:
-                        x_1, y_1 = line.loc1 
-                        if abs(x-x_1) <= hot_spot_threshold and abs(y-y_1) <= hot_spot_threshold:
-                            line.move_line((x_click, y_click), line.loc2 )
-                        else:
-                            line.move_line(line.loc1, (x_click, y_click) )  
+
+                    if main_textbox in texts_to_lines: 
+                        for line in texts_to_lines[main_textbox]:
+                            x_1, y_1 = line.loc1 
+                            if abs(x_1-x_click) <= hot_spot_threshold and abs(y_1-y_click) <= hot_spot_threshold:
+                                line.move_line((x_click, y_click), line.loc2 )
+                            else:
+                                line.move_line(line.loc1, (x_click, y_click) )
+                    
 
                     
 
         if event.startswith("-INPUT-"):
+            # we only want to execute this code when NOT in drag mode 
+            if drag_mode_button.get_text() == "Drag mode: OFF": 
 
-            if event == "-INPUT--RETURN-CHARACTER-":
-                window['-INPUT-'].update( 
-                        values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
-                            )
-            try:
-                user_text = values['-INPUT-']
-                text_at_click_location = get_text_box_at_location(location, texts)
-                if text_at_click_location is None: # no text at current location, user is trying to create a new textbox here. 
-                    # create new text onto both canvases 
-                    text_at_click_location = Text(location, canvas)
-                    text_on_drag_canvas = Text(location, canvas_drag)
-                    # key value pairing for easy and efficient tracking when dragging event occurs.
-                    texts_to_others[text_at_click_location] = text_on_drag_canvas
-                    texts.append(text_at_click_location) # append it to list for tracking 
-                else:
-                    delete_text_box(text_at_click_location) 
-                    delete_text_box(texts_to_others[text_at_click_location])  
-                    # this is required for a subtle reason -- when rewriting into text boxes 
-                    # and the textbox happens to be a multiple line textbox: if you backspace to a previous line 
-                    # the older location of a click may sometimes no longer be valid and cause a bug where 
-                    # rewriting the same text into a new textbox somewhere near. This is the solution to this bug: 
-                    location = text_at_click_location.get_location() 
+                if event == "-INPUT--RETURN-CHARACTER-":
+                    window['-INPUT-'].update( 
+                            values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
+                                )
+                try:
+                    user_text = values['-INPUT-']
+                    text_at_click_location = get_text_box_at_location(location, texts)
+                    if text_at_click_location is None: # no text at current location, user is trying to create a new textbox here. 
+                        # create new text onto both canvases 
+                        text_at_click_location = Text(location, canvas)
+                        text_on_drag_canvas = Text(location, canvas_drag)
+                        # key value pairing for easy and efficient tracking when dragging event occurs.
+                        texts_to_others[text_at_click_location] = text_on_drag_canvas
+                        texts.append(text_at_click_location) # append it to list for tracking 
+                    else:
+                        text_at_click_location.put_lines(user_text)
+                        delete_text_box(text_at_click_location) 
+                        delete_text_box(texts_to_others[text_at_click_location])  
+                        # this is required for a subtle reason -- when rewriting into text boxes 
+                        # and the textbox happens to be a multiple line textbox: if you backspace to a previous line 
+                        # the older location of a click may sometimes no longer be valid and cause a bug where 
+                        # rewriting the same text into a new textbox somewhere near. This is the solution to this bug: 
+                        location = text_at_click_location.get_location()
 
-                draw_text_box(text_at_click_location, user_text)
-                draw_text_box(texts_to_others[text_at_click_location], user_text)  
+                    draw_text_box(text_at_click_location, user_text)
+                    draw_text_box(texts_to_others[text_at_click_location], user_text)  
 
-            except Exception as e:
-                sg.popup(f"This action returned the following error: \n\t'{e}'.\nYou probably forgot to click where you want to type!")
+                except Exception as e:
+                    sg.popup(f"This action returned the following error: \n\t'{e}'.\nYou probably forgot to click where you want to type!")
         
         if event == "Delete":
             delete_selected_text_boxes(texts, texts_to_others, texts_to_lines)
-        
+
         if event == "connect selected boxes":
             selected_textboxes = get_selected_text_boxes(texts)
-            connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canvas_drag)
+            connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canvas_drag) 
         
         if event == "-TOGGLE-DRAG-MODE-":
-            drag_button = window['-TOGGLE-DRAG-MODE-'] 
-            switch_tabs(drag_button, drag_tab, no_drag_tab)   
+            switch_tabs(drag_mode_button, drag_tab, no_drag_tab)
+        
+        # want to disable and enable buttons based on certain conditions
+        # so that the user can't fire certain events based on these conditions 
+        enable_and_disable_buttons_and_inputs( 
+            drag_mode_button.get_text(), 
+            user_input, get_selected_text_boxes(texts), 
+            connect_button, delete_button
+        )
+
+           
 
 
     window.close()

@@ -28,11 +28,12 @@ class Line:
     
     def move_line(self, loc1_new, loc2_new):
         # update the new locations to where the line is being moved to 
-        # in this context really only one location changes 
-        self.loc1 = loc1_new
-        self.loc2 = loc2_new
-        self.delete_line() 
-        self.draw_line()
+        # in this context really only one location changes
+        if self.id != None: 
+            self.loc1 = loc1_new
+            self.loc2 = loc2_new
+            self.delete_line() 
+            self.draw_line()
     
     def __str__(self):
         return f"this line currently has line id: {self.id}" 

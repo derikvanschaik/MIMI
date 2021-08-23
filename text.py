@@ -18,7 +18,20 @@ class Text:
         # visual aid for indicating whether box is selected or not
         self.selected_box_id_color = "RoyalBlue" 
         self.selected_box_id = None 
+        # colors of figures 
+        self.background_color = "white"
+        self.line_color = "black"
+        self.text_color = "black"
     
+    def get_location(self):
+        return self.location
+    
+    def change_location(self, new_location): 
+        self.location = new_location 
+    
+    def get_lines(self): # returns the current text inside of textbox 
+        return "\\".join(self.lines)  # escape char joins the lines 
+
     def put_lines(self, text):
         self.lines = text.split(self.return_character)
     
@@ -43,7 +56,7 @@ class Text:
             # write text onto canvas 
             line_drawn = self.canvas.draw_text(
                             line, (x, y), font = f"{self.font_name} {self.font_size}", 
-                            text_location = sg.TEXT_LOCATION_LEFT
+                            text_location = sg.TEXT_LOCATION_LEFT, color = self.text_color, 
                             )
             self.update_max_line_width(line_drawn) 
             self.line_ids.append(line_drawn)
@@ -59,11 +72,16 @@ class Text:
     def draw_bounding_box(self):
         # we want to get location of top and bottom of bounding box 
         top_left, bott_right = self.get_bounding_coordinates() 
-        self.bounding_box_id = self.canvas.draw_rectangle(top_left, bott_right)
+        self.bounding_box_id = self.canvas.draw_rectangle(
+            top_left, bott_right, fill_color = self.background_color, line_color = self.line_color 
+            )
+        # since we have now drawn over the text we need to redraw the text....
+        self.write_lines()  
         # we will also want to draw the selected bounding box in case we are redrawing...
         if self.selected_box_id:
             self.delete_selected_box() # delete old one 
-            self.draw_selected_box()  # redraw new one 
+        if self.selected:
+            self.draw_selected_box()  # draw new one if selected 
     
     def draw_selected_box(self):
         top_left, bott_right = self.get_bounding_coordinates()
@@ -103,14 +121,20 @@ class Text:
     def change_font_name(self, new_font_name):
         self.font_name = new_font_name
     
+    def change_background_color(self, new_color):
+        self.background_color = new_color 
+    
+    def change_line_color(self, new_color):
+        self.line_color = new_color 
+    
+    def change_text_color(self, new_color):
+        self.text_color = new_color 
+
     def get_selected(self):
         return self.selected 
     
     def toggle_selected(self):
         self.selected = not self.selected
-    
-    def get_lines(self):
-        return "\\".join(self.lines)
     
     def __str__(self):
         return "-".join(self.lines)
