@@ -37,13 +37,23 @@ def delete_text_box(textbox):
     textbox.delete_lines()
 
 def draw_text_box(textbox, user_text):
-    textbox.put_lines(user_text) 
+    # sometimes we may not want to use this function to draw new text
+    # when we already have text and just want to draw 
+    # same text at say a given new location when dragging
+    # for which we would simply set None as user_text param.   
+    if user_text:
+        textbox.put_lines(user_text) 
     textbox.write_lines()
     textbox.draw_bounding_box()
 
 def delete_text_boxes(textboxes):
     for textbox in textboxes:
         delete_text_box(textbox)
+
+def move_text_box(textbox, new_location):
+    delete_text_box(textbox)
+    textbox.change_location(new_location)   
+    draw_text_box(textbox, None) # draw textbox at new location 
 
 def get_selected_text_boxes(textboxes):
     return [textbox for textbox in textboxes if textbox.get_selected() ] 
@@ -80,9 +90,23 @@ def connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canv
 
         texts_to_lines[textbox] += [line_drag, line_main]  # extending array of lines to text to lines dict 
         textbox.delete_selected_box() # delete the selected box 
-        textbox.toggle_selected() # now false 
+        textbox.toggle_selected() # now false
+
+def switch_tabs(drag_button, drag_tab, no_drag_tab):
+    drag_button_text = drag_button.get_text() 
+    if drag_button_text == "Drag mode: OFF":
+        drag_tab.update(visible=True)
+        drag_tab.select() 
+        no_drag_tab.update(visible=False)
+        drag_button.update(text = f"Drag mode: ON")
+    else:
+        drag_tab.update(visible=False)
+        no_drag_tab.select() 
+        no_drag_tab.update(visible=True) 
+        drag_button.update(text = f"Drag mode: OFF")   
 
 def main():
+    #layout widgets 
     canvas = sg.Graph(
         (700, 600), (0,0), (500, 500), key='-CANVAS-',
         background_color='white', enable_events=True, 
@@ -94,22 +118,22 @@ def main():
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
     drag_tab = sg.Tab('Dragging On', [[canvas_drag]], visible = False ) 
     tabs = sg.TabGroup([[no_drag_tab, drag_tab]])
-    user_input = sg.Input('', key="-INPUT-", enable_events=True)
-    layout = [[user_input, sg.Button("Delete"), sg.Button("connect selected boxes")], [tabs]]
+    user_input = sg.Input('', key="-INPUT-", enable_events=True) 
+    layout = [[user_input,sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-"), sg.Button("Delete"), sg.Button("connect selected boxes")], [tabs]]
     window = sg.Window('carriage return tester', layout).finalize() 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
+    # global event variables 
     location = None
     texts = [] # list of text box figures drawn onto the main canvas (the non-draggable canvas)
-    texts_to_others = { } # for each textbox we have a corresponding text box figure drawn onto the other canvas.
+    texts_to_others = {} # for each textbox we have a corresponding text box figure drawn onto the other canvas -this maps the two.
     texts_to_lines = {} # maps text objects to a list of line objects which are 'connected' to these textboxes. 
 
     while True:
         event , values = window.read()
-        print("TEXT TO LINES:", texts_to_lines) 
         if event == sg.WIN_CLOSED:
             break
         if event == '-RETURN-CHARACTER-':
-            print("hey there I am here")
+            # append return character to current text 
             window['-INPUT-'].update( 
                 values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
             )
@@ -118,7 +142,26 @@ def main():
             handle_canvas_click(location, texts, user_input)
         
         if event.startswith("-CANVAS-DRAG-"):
-            print("dragging at:", values['-CANVAS-DRAG-']) 
+            x_click, y_click = values['-CANVAS-DRAG-'] #drag location 
+            hot_spot_threshold = 10 # the error we give for a hotspot drag  
+            for main_textbox, drag_textbox in texts_to_others.items():
+                x, y = drag_textbox.get_location() 
+                if abs(x-x_click) <= hot_spot_threshold and abs(y-y_click) <= hot_spot_threshold:
+                    new_location = (x_click, y_click)
+                    # move both textboxes on both canvases 
+                    move_text_box(main_textbox, new_location)
+                    move_text_box(drag_textbox, new_location)  
+                    # delete_text_box(drag_textbox)
+                    # drag_textbox.change_location(new_location) 
+                    # draw_text_box(drag_textbox, None) # draw textbox at new location
+                    for line in texts_to_lines[main_textbox]:
+                        x_1, y_1 = line.loc1 
+                        if abs(x-x_1) <= hot_spot_threshold and abs(y-y_1) <= hot_spot_threshold:
+                            line.move_line((x_click, y_click), line.loc2 )
+                        else:
+                            line.move_line(line.loc1, (x_click, y_click) )  
+
+                    
 
         if event.startswith("-INPUT-"):
 
@@ -157,6 +200,10 @@ def main():
         if event == "connect selected boxes":
             selected_textboxes = get_selected_text_boxes(texts)
             connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canvas_drag)
+        
+        if event == "-TOGGLE-DRAG-MODE-":
+            drag_button = window['-TOGGLE-DRAG-MODE-'] 
+            switch_tabs(drag_button, drag_tab, no_drag_tab)   
 
 
     window.close()
