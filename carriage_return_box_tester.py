@@ -1,5 +1,6 @@
 import PySimpleGUI as sg
 from text import Text
+from line import Line 
 # GLOBAL CONSTANTS 
 RETURN_CHAR = "\\"
 
@@ -22,12 +23,10 @@ def handle_canvas_click(click_location, text_boxes, user_input):
         text_at_click_location.toggle_selected()
         is_selected = text_at_click_location.get_selected() # get the selected property 
         if is_selected:
-            text_at_click_location.draw_selected_box()
-
+            text_at_click_location.draw_selected_box() 
+            user_input.update(text_at_click_location.get_lines()) 
         else:
             text_at_click_location.delete_selected_box() 
-
-        user_input.update(text_at_click_location.get_lines()) 
     else:
         user_input.update("") # we want to clear user input so user can start typing
     # finally we want to set the focus onto the input element 
@@ -46,43 +45,68 @@ def delete_text_boxes(textboxes):
     for textbox in textboxes:
         delete_text_box(textbox)
 
+def get_selected_text_boxes(textboxes):
+    return [textbox for textbox in textboxes if textbox.get_selected() ] 
+
 # event handler for 'delete' event
-def delete_selected_text_boxes(texts, texts_to_others):
+def delete_selected_text_boxes(texts, texts_to_others, texts_to_lines):
     # delete the boxes from canvases 
-    selected_textboxes = [textbox for textbox in texts if textbox.get_selected() ]
-    drag_textboxes = [texts_to_others[textbox] for textbox in texts if textbox.get_selected()] 
+    selected_textboxes = get_selected_text_boxes(texts)
+    drag_textboxes = [texts_to_others[textbox] for textbox in selected_textboxes]  
     delete_text_boxes(selected_textboxes)
     delete_text_boxes(drag_textboxes)
     # delete the references from texts and texts_to_others trackers. 
     for textbox in selected_textboxes:
         texts.remove(textbox)
-        del texts_to_others[textbox] 
+        del texts_to_others[textbox]
+        lines_to_remove = [] # for reference to quickly delete 
+        for line in texts_to_lines[textbox]:
+            line.delete_line()
+            lines_to_remove.append(line)
+        # once we remove the lines we want to remove the lines from the list of lines attached to that
+        # given textbox 
+        for line in lines_to_remove:
+            texts_to_lines[textbox].remove(line)
 
+def connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canvas_drag):
+    loc1, loc2 = (textbox.get_location() for textbox in selected_textboxes)
+    line_main = Line(canvas, loc1, loc2)
+    line_drag = Line(canvas_drag, loc1, loc2) 
+    line_main.draw_line()
+    line_drag.draw_line() 
+    for textbox in selected_textboxes:
+        if textbox not in texts_to_lines:
+            texts_to_lines[textbox] = [] 
+
+        texts_to_lines[textbox] += [line_drag, line_main]  # extending array of lines to text to lines dict 
+        textbox.delete_selected_box() # delete the selected box 
+        textbox.toggle_selected() # now false 
 
 def main():
     canvas = sg.Graph(
-        (500, 500), (0,0), (500, 500), key='-CANVAS-',
+        (700, 600), (0,0), (500, 500), key='-CANVAS-',
         background_color='white', enable_events=True, 
         )
     canvas_drag = sg.Graph(
-        (500, 500), (0,0), (500, 500), key='-CANVAS-DRAG-',
+        (700, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
         background_color='white', enable_events=True,drag_submits=True,  
         )
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
     drag_tab = sg.Tab('Dragging On', [[canvas_drag]])
     tabs = sg.TabGroup([[drag_tab, no_drag_tab]])
     user_input = sg.Input('', key="-INPUT-", enable_events=True)
-    layout = [[user_input, sg.Button("Delete")], [tabs]]
-    window = sg.Window('carriage return tester', layout).finalize() 
+    layout = [[user_input, sg.Button("Delete"), sg.Button("connect selected boxes")], [tabs]]
+    window = sg.Window('carriage return tester', layout).finalize()
 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
     location = None
     texts = [] # list of text box figures drawn onto the main canvas (the non-draggable canvas)
     texts_to_others = { } # for each textbox we have a corresponding text box figure drawn onto the other canvas.
+    texts_to_lines = {} # maps text objects to a list of line objects which are 'connected' to these textboxes. 
 
     while True:
         event , values = window.read()
-        print(event)
+        print("TEXT TO LINES:", texts_to_lines) 
         if event == sg.WIN_CLOSED:
             break
         if event == '-RETURN-CHARACTER-':
@@ -91,8 +115,11 @@ def main():
                 values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
             )
         if event == "-CANVAS-":
-            location = values[event] # location of click 
+            location = values[event] # location of click
             handle_canvas_click(location, texts, user_input)
+        
+        if event.startswith("-CANVAS-DRAG-"):
+            print("dragging at:", values['-CANVAS-DRAG-']) 
 
         if event.startswith("-INPUT-"):
 
@@ -112,7 +139,7 @@ def main():
                     texts.append(text_at_click_location) # append it to list for tracking 
                 else:
                     delete_text_box(text_at_click_location) 
-                    delete_text_box(text_on_drag_canvas) 
+                    delete_text_box(texts_to_others[text_at_click_location])  
                     # this is required for a subtle reason -- when rewriting into text boxes 
                     # and the textbox happens to be a multiple line textbox: if you backspace to a previous line 
                     # the older location of a click may sometimes no longer be valid and cause a bug where 
@@ -120,13 +147,18 @@ def main():
                     location = text_at_click_location.location
 
                 draw_text_box(text_at_click_location, user_text)
-                draw_text_box(text_on_drag_canvas, user_text)  
+                draw_text_box(texts_to_others[text_at_click_location], user_text)  
 
             except Exception as e:
                 sg.popup(f"This action returned the following error: \n\t'{e}'.\nYou probably forgot to click where you want to type!")
         
         if event == "Delete":
-            delete_selected_text_boxes(texts, texts_to_others)
+            delete_selected_text_boxes(texts, texts_to_others, texts_to_lines)
+        
+        if event == "connect selected boxes":
+            selected_textboxes = get_selected_text_boxes(texts)
+            connect_selected_text_boxes(selected_textboxes, texts_to_lines, canvas, canvas_drag)
+
 
     window.close()
 
