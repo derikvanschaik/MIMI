@@ -33,7 +33,7 @@ class Text:
         return "\\".join(self.lines)  # escape char joins the lines 
 
     def put_lines(self, text):
-        self.lines = text.split(self.return_character)
+        self.lines = text.split(self.return_character) 
     
     def update_line_height(self, text):
         drawn_text = self.canvas.draw_text(
@@ -62,7 +62,7 @@ class Text:
             self.line_ids.append(line_drawn)
 
     def get_bounding_coordinates(self):
-        # we want to get location of top and bottom of bounding box 
+        # we want to get location of top and bottom of bounding box
         (x_left, top_y), (_, _) = self.canvas.get_bounding_box(self.line_ids[0])
         (_, _), (_, bott_y) = self.canvas.get_bounding_box(self.line_ids[-1])
         top_left = (x_left, top_y)

@@ -114,7 +114,46 @@ def switch_tabs(drag_button, drag_tab, no_drag_tab):
 def enable_and_disable_buttons_and_inputs(drag_button_text, user_input, selected_texts, delete_button, connect_button):
     user_input.update( disabled = (drag_button_text == "Drag mode: ON") ) # want to disable user input if in drag mode
     delete_button.update( disabled = not(len(selected_texts) > 0) )
-    connect_button.update( disabled = not(len(selected_texts) == 2 ) ) 
+    connect_button.update( disabled = not(len(selected_texts) == 2 ) )
+
+# in order to save our current canvas state, we need to load all text objects 
+# and line objects into a data structure which we will eventually convert to json for saving.
+# see documentation in github repo for more specifics. 
+def create_persistence_data_structure(texts, texts_to_lines, canvas, canvas_key, drag_canvas_key): 
+    textbox_object_reps = [] # will be saved in json 
+    for textbox in texts:
+        tbox = {} 
+        tbox['location'] = list(textbox.get_location()) # need to convert to list as json cannot handle tuples 
+        tbox['lines'] = textbox.lines 
+        tbox['font_name'] = textbox.font_name
+        tbox['font_size'] = textbox.font_size
+        tbox['background_color'] = textbox.background_color 
+        tbox['line_color'] = textbox.line_color
+        tbox['text_color'] = textbox.text_color
+        # get line objects 
+        tbox['line_objects'] = [] # list of dictionaries representing line objects
+        if textbox in texts_to_lines:
+            for line in texts_to_lines[textbox]:
+                lineobj = {}
+                lineobj['canvas_key'] = canvas_key if line.canvas == canvas else drag_canvas_key 
+                lineobj['loc1'] = line.loc1 
+                lineobj['loc2'] = line.loc2 
+                lineobj['width'] = line.width 
+                tbox['line_objects'].append( lineobj )
+
+        textbox_object_reps.append(tbox)
+
+    return textbox_object_reps
+
+# also a json persistence data structure function 
+def copy_saved_fields_to_textbox_objects(text_on_canvas, textbox_rep):
+    text_on_canvas.lines = textbox_rep['lines']
+    text_on_canvas.font_name = textbox_rep['font_name']
+    text_on_canvas.font_size = textbox_rep['font_size']
+    text_on_canvas.background_color = textbox_rep['background_color']
+    text_on_canvas.line_color = textbox_rep['line_color']
+    text_on_canvas.text_color = textbox_rep['text_color'] 
+
 
 def main():
     #layout widgets 
@@ -129,20 +168,30 @@ def main():
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
     drag_tab = sg.Tab('Dragging On', [[canvas_drag]], visible = False ) 
     tabs = sg.TabGroup([[no_drag_tab, drag_tab]])
+    save_json_button = sg.Button("save current canvas") 
     connect_button = sg.Button("Delete")
     delete_button = sg.Button("connect selected boxes")
     drag_mode_button = sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-")
+    clear_canvas_button = sg.Button("clear canvas")
+    load_json_button = sg.Button("load saved")
     user_input = sg.Input('', key="-INPUT-", enable_events=True) 
-    layout = [[user_input,drag_mode_button, connect_button, delete_button], [tabs]]
-    window = sg.Window('carriage return tester', layout).finalize() 
+    layout = [
+        [user_input,drag_mode_button, connect_button, delete_button, save_json_button, load_json_button, clear_canvas_button], 
+        [tabs]
+            ]
+    window = sg.Window('carriage return tester', layout).finalize()
+    # final bindings and widget modifications prior to event loop 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
+    canvas.set_focus() # we want focus away from input to stop a bug
+    connect_button.update(disabled=True) 
+    delete_button.update(disabled=True)
     # global event variables 
     location = None 
     texts = [] # list of text box figures drawn onto the main canvas (the non-draggable canvas)
     texts_to_others = {} # for each textbox we have a corresponding text box figure drawn onto the other canvas -this maps the two.
-    texts_to_lines = {} # maps text objects to a list of line objects which are 'connected' to these textboxes. 
-    canvas.set_focus() # we want focus away from input to stop a bug
-
+    texts_to_lines = {} # maps text objects to a list of line objects which are 'connected' to these textboxes.
+    json_data_structure = [] # will be used to save and load different canvas files 
+    
     while True: 
         event , values = window.read()
         # print(texts_to_lines, texts_to_others, texts)  
@@ -168,13 +217,17 @@ def main():
                     move_text_box(main_textbox, new_location)
                     move_text_box(drag_textbox, new_location)  
 
-                    if main_textbox in texts_to_lines: 
-                        for line in texts_to_lines[main_textbox]:
+                    if main_textbox in texts_to_lines:
+                        print("textbox we are moving: ", main_textbox)
+                        for line_num, line in enumerate(texts_to_lines[main_textbox]):  
                             x_1, y_1 = line.loc1 
                             if abs(x_1-x_click) <= hot_spot_threshold and abs(y_1-y_click) <= hot_spot_threshold:
                                 line.move_line((x_click, y_click), line.loc2 )
+                                print("moving line num", line_num)
+
                             else:
                                 line.move_line(line.loc1, (x_click, y_click) )
+                                print("moving line num", line_num)
 
 
         if event.startswith("-INPUT-"):
@@ -222,6 +275,68 @@ def main():
         
         if event == "-TOGGLE-DRAG-MODE-":
             switch_tabs(drag_mode_button, drag_tab, no_drag_tab)
+        
+        # EVENTS RELATED TO PERSISTENCE -- IN TESTING (BETA) MODE. 
+        if event == "save current canvas":
+            print("saving json event")
+            canvas_key = '-CANVAS-'
+            drag_canvas_key = '-CANVAS-DRAG-' 
+            json_data_structure = create_persistence_data_structure(texts, texts_to_lines, canvas, canvas_key, drag_canvas_key)
+            print(json_data_structure)
+        
+        if event == "clear canvas":
+            if json_data_structure:
+                canvas.erase()
+                canvas_drag.erase()
+                # need to delete all references from the current datastructures 
+                texts_to_lines = {}
+                texts_to_others = {}
+                texts.clear() 
+            else:
+                sg.popup("Please save current canvas before deleting.")
+
+        if event == "load saved":
+            print("loading saved data structures onto canvas")
+            if json_data_structure:
+                same_lines_tracker = {} # bug fix 
+                for textbox_rep in json_data_structure:
+                    # create new text onto both canvases
+                    text_on_canvas = Text(textbox_rep['location'], canvas) 
+                    text_on_drag = Text(textbox_rep['location'], canvas_drag) 
+                    # copy all fields to textbox objects
+                    copy_saved_fields_to_textbox_objects(text_on_canvas, textbox_rep) 
+                    copy_saved_fields_to_textbox_objects(text_on_drag, textbox_rep)  
+                    # key value pairing for easy and efficient tracking when dragging event occurs.
+                    # need to add texts to lines ... 
+                    texts_to_others[text_on_canvas] = text_on_drag
+                    texts.append(text_on_canvas) # append it to list for tracking 
+
+                    # draw textboxes ...
+                    draw_text_box(text_on_canvas, None) # set user_text param as None since we already have lines in textbox object
+                    draw_text_box(text_on_drag, None)
+                    # line objects
+                    for line_rep in textbox_rep['line_objects']:
+                        line = None
+                        duplicate_tup = (line_rep['canvas_key'], line_rep['loc1'], line_rep['loc2']) 
+                        if duplicate_tup not in same_lines_tracker: # first time we have seen this line 
+                            if line_rep['canvas_key'] == '-CANVAS-':
+                                line = Line(canvas, line_rep['loc1'], line_rep['loc2'])
+                            else:
+                                line = Line(canvas_drag, line_rep['loc1'], line_rep['loc2'])
+                            same_lines_tracker[duplicate_tup] = line # reference this line 
+                        else:
+                            line = same_lines_tracker[duplicate_tup] 
+                        line.width = line_rep['width']
+                        if text_on_canvas not in texts_to_lines: # need to init list to append line objects to 
+                            texts_to_lines[text_on_canvas] = []
+
+                        texts_to_lines[text_on_canvas].append(line)
+                        
+                        if not line: 
+                            line.draw_line()  
+
+            else:
+                sg.popup("No saved canvas to load :/")
         
         # want to disable and enable buttons based on certain conditions
         # so that the user can't fire certain events based on these conditions 
