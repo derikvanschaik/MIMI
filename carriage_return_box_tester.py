@@ -135,6 +135,11 @@ def load_canvas(saved_canvas, texts, texts_to_others,  lines_to_locs, lines_to_o
 
 
 def main():
+    #build theme 
+    sg.theme(sg.theme_list()[19]) # randomly chose this and like
+    sg.theme_background_color('lightblue')
+    sg.theme_element_background_color('lightyellow')
+    sg.theme_button_color(('black', 'white'))
     #layout widgets 
     canvas = sg.Graph(
         (800, 600), (0,0), (500, 500), key='-CANVAS-',
@@ -148,19 +153,27 @@ def main():
     drag_tab = sg.Tab('Dragging On', [[canvas_drag]], visible = False ) 
     tabs = sg.TabGroup([[no_drag_tab, drag_tab]])
     save_json_button = sg.Button("save current canvas") 
-    connect_button = sg.Button("Delete")
-    delete_button = sg.Button("connect selected boxes")
+    connect_button = sg.Button("connect selected boxes")
+    delete_button = sg.Button("Delete") 
     drag_mode_button = sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-")
     clear_canvas_button = sg.Button("clear canvas")
     load_json_button = sg.Button("load saved")
-    user_input = sg.Input('', key="-INPUT-", enable_events=True) 
+    user_input = sg.Input('', key="-INPUT-", enable_events=True, 
+                            background_color=sg.theme_background_color(),
+                            text_color=sg.theme_background_color(), 
+                          )
+    menu_def = [['File', ['Open', 'Save', 'Save As']]]  
+    menu = sg.Menu(menu_def) 
     layout = [
-        [user_input,drag_mode_button, connect_button, delete_button, save_json_button, load_json_button, clear_canvas_button], 
-        [tabs]
+        [menu],  
+        [drag_mode_button, connect_button, delete_button, save_json_button, load_json_button, clear_canvas_button], 
+        [tabs],
+        [user_input]
             ]
     window = sg.Window('carriage return tester', layout).finalize()
     # final bindings and widget modifications prior to event loop 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
+    user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
     canvas.set_focus() # we want focus away from input to stop a bug
     connect_button.update(disabled=True) 
     delete_button.update(disabled=True)
@@ -295,6 +308,7 @@ def main():
             # save canvas into data structure for json 
             saved_canvas = save_canvas(texts, lines_to_locs)
             # convert saved_canvas into json and write to file for persistence 
+
         
         if event == "clear canvas":
             if saved_canvas:
@@ -314,13 +328,16 @@ def main():
                 lines_to_locs, lines_to_others,
                 canvas, canvas_drag
                 )
+        
+        if event in ('Open', "Save", "Save As"):
+            pass 
 
         # want to disable and enable buttons based on certain conditions
         # so that the user can't fire certain events based on these conditions 
         enable_and_disable_buttons_and_inputs( 
             drag_mode_button.get_text(), 
             user_input, get_selected_text_boxes(texts), 
-            connect_button, delete_button
+            delete_button, connect_button
         )
 
            
