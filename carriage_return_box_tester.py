@@ -174,7 +174,7 @@ def main():
                         canvas.delete_figure(figure)
                         canvas_drag.delete_figure(lines_to_others[figure]) 
                         del lines_to_others[figure] # delete the reference 
-                        
+
             for textbox in selected_textboxes:
                 delete_text_box(textbox)
                 delete_text_box(texts_to_others[textbox])
@@ -187,14 +187,14 @@ def main():
             # updates the references for these lines drawn at location for later -- will need for deleting and dragging 
             line_on_main = canvas.draw_line(from_loc, to_loc)
             line_on_drag = canvas_drag.draw_line(from_loc, to_loc)
+            canvas.send_figure_to_back(line_on_main)
+            canvas_drag.send_figure_to_back(line_on_drag) 
+
             lines_to_others[line_on_main] = line_on_drag # reference for later
             for textbox in selected_textboxes:
                 textbox.delete_selected_box()
                 textbox.toggle_selected() 
-             
-
-
-         
+                      
         if event == "-TOGGLE-DRAG-MODE-":
             switch_tabs(drag_mode_button, drag_tab, no_drag_tab)
         
