@@ -98,6 +98,41 @@ def save_canvas(texts, lines_to_locs):
 
     return saved_canvas 
 
+# helper method used in load canvas to copy textbox object dictionary reference 
+# into a textbox object. Purpose is to instantiate textbox object and copy fields over. 
+def dict_to_textbox(textbox_rep, canvas):
+    location = tuple(textbox_rep['location']) 
+    textbox = Text(location, canvas)
+    textbox.lines = textbox_rep['lines']
+    textbox.font_name = textbox_rep['font_name']
+    textbox.font_size = textbox_rep['font_size']
+    textbox.background_color = textbox_rep['background_color']
+    textbox.line_color = textbox_rep['line_color']
+    textbox.text_color = textbox_rep['text_color']
+    return textbox  
+
+
+def load_canvas(saved_canvas, texts, texts_to_others,  lines_to_locs, lines_to_others, canvas, canvas_drag):
+    for textbox_rep in saved_canvas['textboxes']:
+        textbox = dict_to_textbox(textbox_rep, canvas)
+        textbox_drag = dict_to_textbox(textbox_rep, canvas_drag) 
+        draw_text_box(textbox, None) # None as we already have text in lines property. 
+        draw_text_box(textbox_drag, None) 
+        texts.append(textbox)
+        texts_to_others[textbox] = textbox_drag 
+    
+    for [from_loc, to_loc] in saved_canvas['lines']:
+        # convert from list back to tuples (undo what we did in save canvas function)
+        from_loc = tuple(from_loc) 
+        to_loc = tuple(to_loc)
+        line_main = canvas.draw_line(from_loc, to_loc)
+        line_drag = canvas_drag.draw_line(from_loc, to_loc)
+        canvas.send_figure_to_back(line_main)
+        canvas_drag.send_figure_to_back(line_drag) 
+        lines_to_others[line_main] = line_drag 
+        lines_to_locs[line_main] = (from_loc, to_loc) 
+
+
 
 def main():
     #layout widgets 
@@ -257,7 +292,9 @@ def main():
         
         # EVENTS RELATED TO PERSISTENCE -- IN TESTING (BETA) MODE. 
         if event == "save current canvas":
-            saved_canvas = save_canvas(texts, lines_to_locs) 
+            # save canvas into data structure for json 
+            saved_canvas = save_canvas(texts, lines_to_locs)
+            # convert saved_canvas into json and write to file for persistence 
         
         if event == "clear canvas":
             if saved_canvas:
@@ -271,7 +308,13 @@ def main():
 
 
         if event == "load saved":
-            pass 
+
+            load_canvas(
+                saved_canvas, texts, texts_to_others, 
+                lines_to_locs, lines_to_others,
+                canvas, canvas_drag
+                )
+
         # want to disable and enable buttons based on certain conditions
         # so that the user can't fire certain events based on these conditions 
         enable_and_disable_buttons_and_inputs( 
