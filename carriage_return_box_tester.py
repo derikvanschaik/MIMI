@@ -77,6 +77,27 @@ def enable_and_disable_buttons_and_inputs(drag_button_text, user_input, selected
     delete_button.update( disabled = not(len(selected_texts) > 0) )
     connect_button.update( disabled = not(len(selected_texts) == 2 ) )
 
+def save_canvas(texts, lines_to_locs):
+    saved_canvas = {
+        'textboxes': [], 
+        'lines': [], 
+    }
+    for textbox in texts:
+        tbox_rep = {}
+        tbox_rep['location'] = list( textbox.get_location() ) # convert all tuples to list for json saving. 
+        tbox_rep['lines'] = textbox.lines # list data structure
+        tbox_rep['font_name'] = textbox.font_name 
+        tbox_rep['font_size'] = textbox.font_size
+        tbox_rep['background_color'] = textbox.background_color
+        tbox_rep['line_color'] = textbox.line_color
+        tbox_rep['text_color'] = textbox.text_color 
+        saved_canvas['textboxes'].append( tbox_rep)
+    
+    for (from_loc, to_loc) in lines_to_locs.values():
+        saved_canvas['lines'].append( [list(from_loc), list(to_loc) ]) # convert all tups to list for json
+
+    return saved_canvas 
+
 
 def main():
     #layout widgets 
@@ -114,6 +135,7 @@ def main():
     texts_to_others = {} # for each textbox we have a corresponding text box figure drawn onto the other canvas -this maps the two.
     lines_to_others = {} # same as above except with lines 
     lines_to_locs = {} # map each line figure to a tuple of from_location, to_location points. 
+    saved_canvas = {} # data structure we will use to save the contents of the current canvas 
     while True: 
         event , values = window.read()
         if event == sg.WIN_CLOSED:
@@ -158,7 +180,7 @@ def main():
                             canvas_drag.send_figure_to_back(line_drag)
                             lines_to_others[line_main] = line_drag
                             lines_to_locs[line_main] = (new_from_loc, new_to_loc)
-                            del lines_to_locs[figure] # delet old reference as ids are constantly changed 
+                            del lines_to_locs[figure] # delete old reference as ids are constantly changed 
 
                 
 
@@ -235,10 +257,19 @@ def main():
         
         # EVENTS RELATED TO PERSISTENCE -- IN TESTING (BETA) MODE. 
         if event == "save current canvas":
-            pass 
+            saved_canvas = save_canvas(texts, lines_to_locs) 
         
         if event == "clear canvas":
-            pass 
+            if saved_canvas:
+                # erase all figures from canvas
+                canvas_drag.erase()
+                canvas.erase()
+                # re init all tracking data structures -- remove all references 
+                texts = [] 
+                lines_to_locs = {}
+                lines_to_others = {} 
+
+
         if event == "load saved":
             pass 
         # want to disable and enable buttons based on certain conditions
