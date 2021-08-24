@@ -112,7 +112,7 @@ def main():
     location = None 
     texts = [] # list of text box figures drawn onto the main canvas (the non-draggable canvas)
     texts_to_others = {} # for each textbox we have a corresponding text box figure drawn onto the other canvas -this maps the two.
-    
+    lines_to_others = {} # same as above except with lines 
     while True: 
         event , values = window.read()
         if event == sg.WIN_CLOSED:
@@ -166,12 +166,35 @@ def main():
                     print(e) # logging error to output for now 
         
         if event == "Delete":
-            pass 
-
+            selected_textboxes = get_selected_text_boxes(texts)
+            locations = [textbox.get_location() for textbox in selected_textboxes]
+            for location in locations:
+                for figure in canvas.get_figures_at_location(location):
+                    if figure in lines_to_others:
+                        canvas.delete_figure(figure)
+                        canvas_drag.delete_figure(lines_to_others[figure]) 
+                        del lines_to_others[figure] # delete the reference 
+                        
+            for textbox in selected_textboxes:
+                delete_text_box(textbox)
+                delete_text_box(texts_to_others[textbox])
+                texts.remove(textbox)
+                del texts_to_others[textbox] 
+                
         if event == "connect selected boxes":
             selected_textboxes = get_selected_text_boxes(texts)
-            pass 
-        
+            [from_loc, to_loc] = [textbox.get_location() for textbox in selected_textboxes]
+            # updates the references for these lines drawn at location for later -- will need for deleting and dragging 
+            line_on_main = canvas.draw_line(from_loc, to_loc)
+            line_on_drag = canvas_drag.draw_line(from_loc, to_loc)
+            lines_to_others[line_on_main] = line_on_drag # reference for later
+            for textbox in selected_textboxes:
+                textbox.delete_selected_box()
+                textbox.toggle_selected() 
+             
+
+
+         
         if event == "-TOGGLE-DRAG-MODE-":
             switch_tabs(drag_mode_button, drag_tab, no_drag_tab)
         
