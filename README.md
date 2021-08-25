@@ -8,8 +8,8 @@ Here is a gif DEMO of the application I got thanks to mike @ PySimpleGUI:
 A beta-version of a more versatile version of MIMI! Newest and best feature is now the ability to drag elements! Working on bringing persistence to the mix and hopefully a whole bunch of other stuff. 
 
 ## MIMI 2 BETA NOW OFFICIALLY RELEASED! 
-** NEW Features: **
-*Persistence* 
+### NEW Features: ### 
+#### Persistence #### 
 > > Users can now save, open, and save as mindmap files from multiple sessions.
 *Dragging*
 > > Now able to drag textboxes - click 'Drag Mode' button to enable and disable. 
