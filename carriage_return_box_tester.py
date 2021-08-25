@@ -78,6 +78,7 @@ def enable_and_disable_buttons_and_inputs(drag_button_text, user_input, selected
     user_input.update( disabled = (drag_button_text == "Drag mode: ON") ) # want to disable user input if in drag mode
     delete_button.update( disabled = not(len(selected_texts) > 0) )
     connect_button.update( disabled = not(len(selected_texts) == 2 ) )
+    delete_button.update( button_color = ('white', 'red') if (len(selected_texts) > 0) else ('black', 'white'))
 
 def save_canvas(texts, lines_to_locs):
     saved_canvas = {
@@ -147,11 +148,11 @@ def get_json_file_list():
     for entry in os.scandir('.'):
         if entry.is_file():
             if entry.name.endswith('.json'):
-                json_file_list.append(entry.name)
+                json_file_list.append(entry.name.replace('.json', ''))
     return json_file_list 
 
 def select_files_window(file_list):
-    layout = [[sg.Listbox(file_list, key='-FILE-CHOICE-', size=(10, len(file_list)))], [sg.B('Open File')] ]  
+    layout = [[sg.Listbox(file_list, key='-FILE-CHOICE-', size=(30, 20))], [sg.B('Open File')] ]  
     win = sg.Window('Select File', layout)
     selected_file = None 
     while True:
@@ -161,7 +162,7 @@ def select_files_window(file_list):
             break
         if event == 'Open File':
             # print("selecting", values['-FILE-CHOICE-'] ) 
-            selected_file = values['-FILE-CHOICE-'][0] 
+            selected_file = f"{values['-FILE-CHOICE-'][0]}.json" 
             break 
     win.close() 
     return selected_file 
@@ -202,12 +203,11 @@ def main():
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
     drag_tab = sg.Tab('Dragging On', [[canvas_drag]], visible = False ) 
     tabs = sg.TabGroup([[no_drag_tab, drag_tab]])
-    save_json_button = sg.Button("save current canvas") 
     connect_button = sg.Button("connect selected boxes")
     delete_button = sg.Button("Delete") 
     drag_mode_button = sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-")
     clear_canvas_button = sg.Button("clear canvas")
-    load_json_button = sg.Button("load saved")
+    filename_output = sg.Text("Currently modifying file: (No File Saved Yet)", key='-CUR-FILE-') 
     user_input = sg.Input('', key="-INPUT-", enable_events=True, 
                             background_color=sg.theme_background_color(),
                             text_color=sg.theme_background_color(), 
@@ -216,7 +216,7 @@ def main():
     menu = sg.Menu(menu_def) 
     layout = [
         [menu],  
-        [drag_mode_button, connect_button, delete_button, save_json_button, load_json_button, clear_canvas_button], 
+        [drag_mode_button, connect_button, delete_button,clear_canvas_button, filename_output],  
         [tabs],
         [user_input]
             ]
@@ -365,24 +365,16 @@ def main():
 
         
         if event == "clear canvas":
-            if saved_canvas:
-                # erase all figures from canvas
-                canvas_drag.erase()
-                canvas.erase()
-                # re init all tracking data structures -- remove all references 
-                texts = [] 
-                lines_to_locs = {}
-                lines_to_others = {} 
+            if not saved_canvas:
+                saved_canvas = save_canvas(texts, lines_to_locs) # save their work just in case 
+            # erase all figures from canvas
+            canvas_drag.erase()
+            canvas.erase()
+            # re init all tracking data structures -- remove all references 
+            texts = [] 
+            lines_to_locs = {}
+            lines_to_others = {} 
 
-
-        if event == "load saved":
-
-            load_canvas(
-                saved_canvas, texts, texts_to_others, 
-                lines_to_locs, lines_to_others,
-                canvas, canvas_drag
-                )
-        
         if event in ('Open', "Save", "Save As"):
             if event == 'Save':
                 if filename:
@@ -395,7 +387,11 @@ def main():
                 saved_canvas = save_canvas(texts, lines_to_locs)
                 filename = save_file_as_window() + '.json' # user simply provides name 
                 if filename:
-                    write_file(filename, saved_canvas) # write saved canvas to json 
+                    write_file(filename, saved_canvas) # write saved canvas to json
+                    window['-CUR-FILE-'].update(
+                        f"Currently modifying file: '{filename.replace('.json', '')}'", 
+                        background_color = 'yellow', text_color = 'black',  
+                        ) 
             
             if event == 'Open':
                 json_files = get_json_file_list()
@@ -415,6 +411,10 @@ def main():
                         lines_to_locs, lines_to_others,
                         canvas, canvas_drag
                     )
+                    window['-CUR-FILE-'].update(
+                        f"Currently modifying file: '{filename.replace('.json', '')}'", 
+                        background_color = 'yellow', text_color = 'black',  
+                        ) 
                 
 
 
