@@ -8,7 +8,8 @@
 >> Users can now save, open, and save as mindmap files from multiple sessions.
 >> ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/persistence.gif)
 #### Dragging ####
->> Now able to drag textboxes - click 'Drag Mode' button to enable and disable. 
+>> Now able to drag textboxes - click 'Drag Mode' button to enable and disable.
+>> ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/dragging.gif)
 #### Modify text in previous textboxes ####
 >> In the original MIMI users could not alter text in prior textboxes after writing a new textbox.Now user simply selects the Textbox and appends or deletes text within it. 
 #### Delete one or more textboxes ####
