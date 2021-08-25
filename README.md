@@ -11,9 +11,11 @@
 >> Now able to drag textboxes - click 'Drag Mode' button to enable and disable.
 >> ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/dragging.gif)
 #### Modify text in previous textboxes ####
->> In the original MIMI users could not alter text in prior textboxes after writing a new textbox.Now user simply selects the Textbox and appends or deletes text within it. 
+>> In the original MIMI users could not alter text in prior textboxes after writing a new textbox.Now user simply selects the Textbox and appends or deletes text within it.
+>> ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/changetext.gif) 
 #### Delete one or more textboxes ####
->> User simply selects and deletes textboxes as they please. 
+>> User simply selects and deletes textboxes as they please.
+>> ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/delete.gif)
 
 
 # MIMI
