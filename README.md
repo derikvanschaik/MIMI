@@ -10,7 +10,7 @@
 #### Delete one or more textboxes ####
 >> User simply selects and deletes textboxes as they please. 
 
-
+#### Previous _(rough draft)_ Mimi 2 demos: #### 
 ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/mimi2ademo01.gif)
 
 Demos for mimi2.py:
