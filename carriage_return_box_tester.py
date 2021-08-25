@@ -1,4 +1,4 @@
-from os import write
+from os import error, write
 from tkinter.constants import S
 import PySimpleGUI as sg
 from text import Text
@@ -168,9 +168,13 @@ def select_files_window(file_list):
     return selected_file 
 
 def save_file_as_window():
-    layout = [[sg.Input('', key='filename')], [sg.Button('Save')] ]  
+    current_file_list = get_json_file_list() 
+    layout = [[sg.Input('', key='filename')],
+              [sg.T(key='error-output', visible = False, size = (60, 5))],
+              [sg.Button('Save')] ]  
     win = sg.Window('Save file under desired name.', layout) 
     filename = None 
+    error_seen = False 
     while True:
         event, values = win.read()
         # print(event, values) 
@@ -178,8 +182,16 @@ def save_file_as_window():
             break
         if event == 'Save':
             if values['filename']:
-                filename = values['filename']
-                break
+                filename = values['filename'] 
+                if filename not in current_file_list or error_seen:
+                    break
+                else:
+                    win['error-output'].update(
+                        value = f"You already have a file saved under {filename}.\nPress 'Save' to overwrite or type new filename.",
+                        visible = True, 
+                    )
+                    error_seen = True
+                    filename = None 
         
     win.close() 
     return filename 
@@ -385,8 +397,9 @@ def main():
             if event == 'Save As':
                 # save canvas into data structure for json 
                 saved_canvas = save_canvas(texts, lines_to_locs)
-                filename = save_file_as_window() + '.json' # user simply provides name 
+                filename = save_file_as_window()
                 if filename:
+                    filename += '.json' # user simply provides name, not the extension. 
                     write_file(filename, saved_canvas) # write saved canvas to json
                     window['-CUR-FILE-'].update(
                         f"Currently modifying file: '{filename.replace('.json', '')}'", 
