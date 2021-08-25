@@ -11,14 +11,14 @@
 >> User simply selects and deletes textboxes as they please. 
 
 
-![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2ademo01.gif)
+![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/mimi2ademo01.gif)
 
 Demos for mimi2.py:
-![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2demo.gif)
+![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/mimi2demo.gif)
 
 Another Demo for those who can't read the teeny tiny text in the demo above:
 
-![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2demo02.gif)
+![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/gifs/mimi2demo02.gif)
 
 # MIMI
 A mindmapping application using PySimpleGUI, 
