@@ -10,13 +10,13 @@ A beta-version of a more versatile version of MIMI! Newest and best feature is n
 ## MIMI 2 BETA NOW OFFICIALLY RELEASED! 
 ### NEW Features: ### 
 #### Persistence #### 
-> > Users can now save, open, and save as mindmap files from multiple sessions.
-*Dragging*
-> > Now able to drag textboxes - click 'Drag Mode' button to enable and disable. 
-*Change Old textboxes*
-> > In the original MIMI users could not alter text in prior textboxes after writing a new textbox.Now user simply selects the Textbox and appends or deletes text within it. 
-*Delete one or more textboxes*
-> > User simply selects and deletes textboxes as they please. 
+>> Users can now save, open, and save as mindmap files from multiple sessions.
+#### Dragging ####
+>> Now able to drag textboxes - click 'Drag Mode' button to enable and disable. 
+#### Modify text in previous textboxes ####
+>> In the original MIMI users could not alter text in prior textboxes after writing a new textbox.Now user simply selects the Textbox and appends or deletes text within it. 
+#### Delete one or more textboxes ####
+>> User simply selects and deletes textboxes as they please. 
 
 
 ![Alt Text](https://github.com/derikvanschaik/MIMI/blob/main/mimi2ademo01.gif)
