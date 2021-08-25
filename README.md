@@ -6,6 +6,7 @@
 ### NEW Features: ### 
 #### Persistence #### 
 >> Users can now save, open, and save as mindmap files from multiple sessions.
+>> ![Alt Text](https://github.com/derikvanschaik/MIMI/main/gifs/persistence.gif)
 #### Dragging ####
 >> Now able to drag textboxes - click 'Drag Mode' button to enable and disable. 
 #### Modify text in previous textboxes ####
