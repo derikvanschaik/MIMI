@@ -1,5 +1,3 @@
-from os import error, write
-from tkinter.constants import S
 import PySimpleGUI as sg
 from text import Text
 import json

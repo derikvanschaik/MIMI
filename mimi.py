@@ -126,32 +126,72 @@ def change_input_cursor_color(widget, color):
 def main():
 	sg.theme('Material1')
 	bg_color = sg.theme_background_color()
+	# Building the layout of the window 
 	layout = [
-
-			[sg.Input('', key = '-INPUT-', enable_events = True, text_color = bg_color, background_color =bg_color),
-			 sg.Button('Connect Boxes', key='-CONNECT-'),sg.Button('Erase Last', key='-ERASE-'), sg.Button('Erase All', key='-ERASE-ALL-')],
-			[sg.Graph((1000, 600), (0,0), (100,100), key = '-GRAPH-', enable_events=True)]
+			[sg.Input('', key = '-INPUT-', enable_events = True, text_color = 'black', background_color ='white'),
+			 sg.Button('Connect Boxes', key='-CONNECT-'),\
+			sg.Button('Erase Last', key='-ERASE-'), sg.Button('Erase All', key='-ERASE-ALL-'),\
+			sg.Button('Drag Mode Off', key='-DRAG-MODE-')],
 	]
+	# We need a canvas with drag submits for dragging and moving the textboxes 
+	canvas_drag = sg.Graph(
+		(1000, 600), (0,0), (100,100),
+		background_color="white", 
+		 key = '-GRAPH-2', enable_events=True, drag_submits=True,
+		)
+	# We also need a canvas without drag submits so that the user can click toggle the selected 
+	# property of the text boxes -- the drag submits will interfere with this behaviour 
+	# so we need to alternate between the two canvases behind the scenes 
+	canvas_no_drag = sg.Graph(
+		(1000, 600), (0,0), (100,100),
+		background_color="white", key = '-GRAPH-1', enable_events=True
+		)
+	list_of_tabs = [[
+		sg.Tab('tab 1',[[canvas_no_drag]] ), 
+		sg.Tab('tab 2', [[canvas_drag]], visible=False) # Only one of these tabs will ever be visible at a time 
+		]]
+	tabs = sg.TabGroup(list_of_tabs)
 
+	layout .append(
+		[tabs]
+	)
 	window = sg.Window('', layout).finalize()
-	change_input_cursor_color(window['-INPUT-'], bg_color)
+	# change_input_cursor_color(window['-INPUT-'], bg_color)
 
 	clicked_areas = []
 	text_objects = []
-	lines = [] 
+	lines = []
+	drag_mode = False# global variable to enable dragging widgets
+	cur_canvas = '-GRAPH-1' # global variable to track which tab we are currently on 
+
 	while True:
 		event, values = window.read()
-		canvas = window['-GRAPH-']
+		canvas = window[cur_canvas]
 		if event == sg.WIN_CLOSED:
 			break
 
+		elif event == '-DRAG-MODE-':
+			drag_mode = not drag_mode # toggle the drag_mode 
+			button_text = f"Drag Mode {'On' if drag_mode else 'Off'}"
+			window[event].update(text = button_text)
+			if drag_mode:
+				cur_canvas = '-GRAPH-2'
+				window['tab 1'].update(visible=False)
+				window['tab 2'].update(visible = True)
+				window['tab 2'].select() 
+			else:
+				cur_canvas = '-GRAPH-1'
+				window['tab 2'].update(visible=False)
+				window['tab 1'].update(visible = True)
+				window['tab 1'].select() 				
+
 		elif event.startswith('-ERASE-'):
-			canvas = window['-GRAPH-']
+			
 			if '-ALL-' in event: #the user wishes to clear all canvas elements
 				canvas.erase()
 				clicked_areas.clear()
 				text_objects.clear() 
-			else:
+			else: # user wishes to delete only the last text object drawn 
 				if text_objects: 
 					last_text_box = text_objects.pop()
 					location = last_text_box.get_location()
@@ -164,35 +204,72 @@ def main():
 							canvas.delete_figure(line)
 					
 
-		elif event == '-GRAPH-':
-			click_location = values[event]
+		elif event.startswith('-GRAPH-'):
+			print("**********GRAPH************")
+			print(values)
+			print(clicked_areas)
+			click_location = values[cur_canvas] 
 			text_obj = get_text_objects_at_location(click_location,canvas, text_objects)
 			if text_obj:
-				selected_color = "white" if text_obj.is_selected() else "orange" #changes the text color given its cur selected state
-				text_obj.change_text_box_color(canvas, selected_color)
-				text_obj.change_selected() #toggle the texts selected state
-				
-			else:
-				clicked_areas.append(click_location)
-				window['-INPUT-'].set_focus()
-				window['-INPUT-'].update("")
+				if cur_canvas == '-GRAPH-2': # the canvas with drag submits -- we are in drag mode 
+					text_obj.selected = True
+					x_click, y_click = click_location
+					threshold = 10 
+					x_cur, y_cur = text_obj.get_location() 
+					# for dragging 
+					if (abs(x_click-x_cur) <= threshold and abs(y_click-y_cur) <= threshold):
+						print("Here in move location")
+						text_obj.location = (x_click, y_click) #change the location of box 
+						text_obj.put_text(text_obj.text, canvas) # update the textbox
+						# we need to set the selected property back to false in case the user decides
+						# to leave the box at the new location 
+						text_obj.selected = False
+						# need to draw the lines that were connected to the text box again 
+						# this deletes the line attached to the text box we just deleted 
+						previous_location = (x_cur, y_cur) 
+						for fig in canvas.get_figures_at_location(previous_location):
+							if fig in lines:
+								line = lines.pop(lines.index(fig))
+								canvas.delete_figure(line)
+								
+				elif cur_canvas == "-GRAPH-1": # user is toggling a text object selected property while not in drag mode 
+					text_obj.change_selected() # toggle the text boxes selection property 
+					text_obj.change_text_box_color(canvas, "orange" if text_obj.selected else "white")
 
+
+			else: # no text objects currently at area clicked -- user is creating a text object
+				# so we need to grab the users input
+				clicked_areas.append(click_location)
+				window['-INPUT-'].update("") # clear the input (may be old text input from previous text boxes )
+				window['-INPUT-'].set_focus() # set the focus to input element which grabs user input
+	
+		# Event that is triggered when user is typing and creating a text object 
 		elif event == '-INPUT-':
+			other_canvas = '-GRAPH-1' if cur_canvas == "-GRAPH-2" else "-GRAPH-2"
 			text = values[event]
 			last_clicked_area = clicked_areas[-1]
 			text_obj = get_text_objects_at_location(last_clicked_area,canvas, text_objects)
+			
 			if text_obj:
+				if last_clicked_area != text_obj.location: # this is a bug that occurs sometimes -- can't tell you why 
+					text_obj.location = last_clicked_area # need to correct this 
 				text_obj.put_text(text, canvas)
+					
 			else:
 				text_obj = Text(last_clicked_area, text)
 				text_obj.put_text(text, canvas)
 				text_objects.append(text_obj)
+				print("Did you last click: ", last_clicked_area)
 			print(text_obj)
 
 		elif event == '-CONNECT-':
 			selected_text_boxes = get_selected_text_objects(canvas, text_objects)
 			if len(selected_text_boxes) != 2: #Only two boxes should be connected at a time 
-				sg.popup("Not enough or too many boxes have been selected for connecting.")
+				sg.popup(
+					f"num of selected text boxes = {len(selected_text_boxes)}"
+					)
+				for selected_box in selected_text_boxes:
+					print(selected_box)
 			else:
 				line = connect_selected_text_boxes(canvas, selected_text_boxes)
 				lines.append(line)
