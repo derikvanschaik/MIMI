@@ -1,7 +1,9 @@
+from os import write
 from tkinter.constants import S
 import PySimpleGUI as sg
 from text import Text
-from line import Line 
+import json
+import os 
 # GLOBAL CONSTANTS 
 RETURN_CHAR = "\\"
 
@@ -130,8 +132,56 @@ def load_canvas(saved_canvas, texts, texts_to_others,  lines_to_locs, lines_to_o
         canvas.send_figure_to_back(line_main)
         canvas_drag.send_figure_to_back(line_drag) 
         lines_to_others[line_main] = line_drag 
-        lines_to_locs[line_main] = (from_loc, to_loc) 
+        lines_to_locs[line_main] = (from_loc, to_loc)
 
+def open_file(filename):
+    with open(filename, 'r') as f:
+        return json.load(f)
+
+def write_file(filename, data):
+    with open(filename, 'w') as f:
+        json.dump(data, f)
+
+def get_json_file_list():
+    json_file_list = [] 
+    for entry in os.scandir('.'):
+        if entry.is_file():
+            if entry.name.endswith('.json'):
+                json_file_list.append(entry.name)
+    return json_file_list 
+
+def select_files_window(file_list):
+    layout = [[sg.Listbox(file_list, key='-FILE-CHOICE-', size=(10, len(file_list)))], [sg.B('Open File')] ]  
+    win = sg.Window('Select File', layout)
+    selected_file = None 
+    while True:
+        event, values = win.read()
+        # print(event, values) 
+        if event in (sg.WIN_CLOSED, None):
+            break
+        if event == 'Open File':
+            # print("selecting", values['-FILE-CHOICE-'] ) 
+            selected_file = values['-FILE-CHOICE-'][0] 
+            break 
+    win.close() 
+    return selected_file 
+
+def save_file_as_window():
+    layout = [[sg.Input('', key='filename')], [sg.Button('Save')] ]  
+    win = sg.Window('Save file under desired name.', layout) 
+    filename = None 
+    while True:
+        event, values = win.read()
+        # print(event, values) 
+        if event in (sg.WIN_CLOSED, None):
+            break
+        if event == 'Save':
+            if values['filename']:
+                filename = values['filename']
+                break
+        
+    win.close() 
+    return filename 
 
 
 def main():
@@ -184,6 +234,7 @@ def main():
     lines_to_others = {} # same as above except with lines 
     lines_to_locs = {} # map each line figure to a tuple of from_location, to_location points. 
     saved_canvas = {} # data structure we will use to save the contents of the current canvas 
+    filename = None 
     while True: 
         event , values = window.read()
         if event == sg.WIN_CLOSED:
@@ -266,7 +317,10 @@ def main():
                     draw_text_box(texts_to_others[text_at_click_location], user_text)  
 
                 except Exception as e:
-                    print(e) # logging error to output for now 
+                    print(e) # logging error to output for now
+
+            else: # user has likely forgotten to turn off drag mode. 
+                sg.popup("Turn off Drag Mode to start typing on canvas again :). ")
         
         if event == "Delete":
             selected_textboxes = get_selected_text_boxes(texts)
@@ -330,7 +384,40 @@ def main():
                 )
         
         if event in ('Open', "Save", "Save As"):
-            pass 
+            if event == 'Save':
+                if filename:
+                    saved_canvas = save_canvas(texts, lines_to_locs)
+                    write_file(filename, saved_canvas)
+                else:
+                    sg.popup('There is no currently associated filename with your canvas.\n Please try "Saving as" your desired filename.')
+            if event == 'Save As':
+                # save canvas into data structure for json 
+                saved_canvas = save_canvas(texts, lines_to_locs)
+                filename = save_file_as_window() + '.json' # user simply provides name 
+                if filename:
+                    write_file(filename, saved_canvas) # write saved canvas to json 
+            
+            if event == 'Open':
+                json_files = get_json_file_list()
+                filename = select_files_window(json_files)
+                print(filename)
+                if filename:
+                    saved_canvas = open_file(filename)# reference to us opening files 
+                    # erase all figures from canvas
+                    canvas_drag.erase()
+                    canvas.erase()
+                    # re init all tracking data structures -- remove all references 
+                    texts = [] 
+                    lines_to_locs = {}
+                    lines_to_others = {}
+                    load_canvas(
+                        saved_canvas, texts, texts_to_others, 
+                        lines_to_locs, lines_to_others,
+                        canvas, canvas_drag
+                    )
+                
+
+
 
         # want to disable and enable buttons based on certain conditions
         # so that the user can't fire certain events based on these conditions 
