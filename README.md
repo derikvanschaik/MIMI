@@ -3,6 +3,7 @@
 ### How to run: ### 
 * Download 'mimi2beta.py' and 'text.py' files to same directory and run 'mimi2beta.py' in that directory by however you would normally run python files. For me I typically run it using the command 'python mimi2beta.py'.
 * *Note*: Must have PySimpleGUI installed. Try 'pip install pysimplegui'. 
+* Must have python installed. 
 ### NEW Features: ### 
 #### Persistence #### 
 > ##### Users can now save, open, and save as mindmap files from multiple sessions. #####
