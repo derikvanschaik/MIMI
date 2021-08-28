@@ -57,7 +57,58 @@ def move_text_box(textbox, new_location):
     draw_text_box(textbox, None) # draw textbox at new location 
 
 def get_selected_text_boxes(textboxes):
-    return [textbox for textbox in textboxes if textbox.get_selected() ] 
+    return [textbox for textbox in textboxes if textbox.get_selected() ]
+
+# used in canvas drag event handler 
+def get_dragged_textbox(texts, click_loc, drag_threshold):
+    x_click, y_click = click_loc
+    for textbox in texts:
+        x, y = textbox.get_location()
+        if abs(x-x_click) <= drag_threshold and abs(y-y_click) <= drag_threshold:
+            return textbox 
+    return None
+
+# returns tuple (line on main canvas id, line on drag canvas id )
+def draw_line(canvas, canvas_drag, from_loc, to_loc):
+    line_main = canvas.draw_line(from_loc, to_loc)
+    line_drag = canvas_drag.draw_line(from_loc, to_loc )
+    canvas.send_figure_to_back(line_main)
+    canvas_drag.send_figure_to_back(line_drag)
+    return (line_main, line_drag)
+
+# used in delete_lines at loc function
+def update_lines(figure, lines_to_locs, lines_to_others, canvas, canvas_drag, old_loc, new_loc): 
+    x,y = old_loc
+    x_click, y_click = new_loc 
+    (from_loc, to_loc) = lines_to_locs[figure] 
+    new_from_loc = None 
+    new_to_loc = None 
+    if (x, y) == (from_loc):
+        new_from_loc = (x_click, y_click)
+        new_to_loc = to_loc
+    else:
+        new_from_loc = from_loc
+        new_to_loc = (x_click, y_click)
+    
+    line_main, line_drag = draw_line(canvas, canvas_drag, new_from_loc, new_to_loc)
+    print("line main, line drag", line_main, line_drag) 
+    lines_to_others[line_main] = line_drag
+    lines_to_locs[line_main] = (new_from_loc, new_to_loc)
+
+def delete_lines_at_loc(canvas, canvas_drag, lines_to_others, lines_to_locs, loc, *callbackargs): 
+    # find all lines associated with this location 
+    for figure in canvas.get_figures_at_location(loc): 
+        if figure in lines_to_others: # figure is a line 
+            canvas.delete_figure(figure) # delete from canvas
+            canvas_drag.delete_figure(lines_to_others[figure] ) # delete line from drag canvas 
+            del lines_to_others[figure] # remove reference
+
+            if callbackargs:
+                print("in calll bak args") 
+                update_lines(figure, lines_to_locs, lines_to_others, canvas, canvas_drag, loc, *callbackargs) 
+
+            del lines_to_locs[figure]  
+
 
 def switch_tabs(drag_button, drag_tab, no_drag_tab):
     drag_button_text = drag_button.get_text() 
@@ -195,6 +246,7 @@ def save_file_as_window():
     return filename 
 
 
+
 def main():
     #build theme 
     sg.theme(sg.theme_list()[19]) # randomly chose this and like
@@ -261,37 +313,17 @@ def main():
         if event.startswith("-CANVAS-DRAG-"):
             x_click, y_click = values['-CANVAS-DRAG-']
             threshold = 15 
-            for textbox in texts:
-                x, y = textbox.get_location()
-                if abs(x-x_click) <= threshold and abs(y-y_click) <= threshold:
-                    # move the textbox as it is being dragged 
-                    new_location = (x_click, y_click)
-                    move_text_box(textbox, new_location) 
-                    move_text_box(texts_to_others[textbox], new_location) # this is the actual textbox we are moving on drag canvas  
-                    # find all lines associated with this location 
-                    for figure in canvas.get_figures_at_location((x, y)):
-                        if figure in lines_to_others: # figure is a line 
-                            canvas.delete_figure(figure) # delete from canvas
-                            canvas_drag.delete_figure(lines_to_others[figure] ) # delete line from drag canvas 
-                            del lines_to_others[figure] # remove reference
-                            (from_loc, to_loc) = lines_to_locs[figure]
-                            new_from_loc = None 
-                            new_to_loc = None 
-                            if (x, y) == (from_loc):
-                                new_from_loc = (x_click, y_click)
-                                new_to_loc = to_loc
-                            else:
-                                new_from_loc = from_loc
-                                new_to_loc = (x_click, y_click)
-                            line_main = canvas.draw_line(new_from_loc, new_to_loc)
-                            line_drag = canvas_drag.draw_line(new_from_loc, new_to_loc)
-                            canvas.send_figure_to_back(line_main)
-                            canvas_drag.send_figure_to_back(line_drag)
-                            lines_to_others[line_main] = line_drag
-                            lines_to_locs[line_main] = (new_from_loc, new_to_loc)
-                            del lines_to_locs[figure] # delete old reference as ids are constantly changed 
+            textbox = get_dragged_textbox(texts, (x_click, y_click), threshold) 
+            if textbox: 
+                x, y = textbox.get_location() # current location of textbox 
+                # move the textbox as it is being dragged 
+                new_location = (x_click, y_click)
+                move_text_box(textbox, new_location)  
+                move_text_box(texts_to_others[textbox], new_location) # this is the actual textbox we are moving on drag canvas  
+                # since we provide callback args to this function 
+                # it will update our lines that we drag at location -- not just delete  
+                delete_lines_at_loc(canvas, canvas_drag, lines_to_others, lines_to_locs, (x,y), new_location )  
 
-                
 
         if event.startswith("-INPUT-"):
             # we only want to execute this code when NOT in drag mode 
@@ -335,13 +367,13 @@ def main():
         if event == "Delete":
             selected_textboxes = get_selected_text_boxes(texts)
             locations = [textbox.get_location() for textbox in selected_textboxes]
+            
             for location in locations:
-                for figure in canvas.get_figures_at_location(location):
-                    if figure in lines_to_others:
-                        canvas.delete_figure(figure)
-                        canvas_drag.delete_figure(lines_to_others[figure]) 
-                        del lines_to_others[figure] # delete the reference 
-                        del lines_to_locs[figure] # delete reference to locations 
+
+                delete_lines_at_loc(
+                    canvas, canvas_drag, lines_to_others,
+                    lines_to_locs, location,
+                    ) 
 
             for textbox in selected_textboxes:
                 delete_text_box(textbox)
