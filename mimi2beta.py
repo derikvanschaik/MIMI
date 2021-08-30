@@ -252,8 +252,29 @@ def load_history_dir(dirname, history_filename):
         os.mkdir(dir) # makes directory  
         return None 
 
-    with open(f"{dir}/{history_filename}", "r") as history_file:   
-        return history_file.readlines()[0] # only one filename  
+    try:
+        with open(f"{dir}/{history_filename}", "r") as history_file:   
+            return history_file.readlines()[0] # only one filename 
+
+    except Exception as e: # there was an error in reading the filename -- no filename saved 
+        return None 
+
+def load_last_saved_canvas(texts, texts_to_others, lines_to_locs, lines_to_others, canvas, canvas_drag, window, filename):
+    last_modified_file = load_history_dir('/history', 'history.txt')   
+    json_files = get_json_file_list()
+    if last_modified_file:
+        if last_modified_file.replace(".json", "") in json_files: 
+            last_canvas = open_file(last_modified_file) 
+            load_canvas(
+                last_canvas, texts, texts_to_others,
+                lines_to_locs, lines_to_others, canvas, canvas_drag 
+            )
+            filename = last_modified_file 
+            window['-CUR-FILE-'].update(
+                f"Currently modifying file: '{filename.replace('.json', '')}'", 
+                background_color = 'yellow', text_color = 'black',   
+                            )
+    return filename 
 
 
 def main():
@@ -306,21 +327,28 @@ def main():
     lines_to_locs = {} # map each line figure to a tuple of from_location, to_location points. 
     saved_canvas = {} # data structure we will use to save the contents of the current canvas 
     filename = None 
-    # load last canvas onto screen 
-    last_modified_file = load_history_dir('/history', 'history.txt') 
-    json_files = get_json_file_list()
-    if last_modified_file:
-        if last_modified_file.replace(".json", "") in json_files: 
-            last_canvas = open_file(last_modified_file) 
-            load_canvas(
-                last_canvas, texts, texts_to_others,
-                lines_to_locs, lines_to_others, canvas, canvas_drag 
-            )
-            filename = last_modified_file
-            window['-CUR-FILE-'].update(
-                f"Currently modifying file: '{filename.replace('.json', '')}'", 
-                background_color = 'yellow', text_color = 'black',   
-                            )
+    # load last canvas onto screen
+    filename = load_last_saved_canvas(
+        texts, texts_to_others, lines_to_locs, 
+        lines_to_others, canvas, 
+        canvas_drag, window, filename
+        )
+    print("just loaded canvas and filename is", filename) 
+    # load_last_saved_canvas()
+    # last_modified_file = load_history_dir('/history', 'history.txt')   
+    # json_files = get_json_file_list()
+    # if last_modified_file:
+    #     if last_modified_file.replace(".json", "") in json_files: 
+    #         last_canvas = open_file(last_modified_file) 
+    #         load_canvas(
+    #             last_canvas, texts, texts_to_others,
+    #             lines_to_locs, lines_to_others, canvas, canvas_drag 
+    #         )
+    #         filename = last_modified_file
+    #         window['-CUR-FILE-'].update(
+    #             f"Currently modifying file: '{filename.replace('.json', '')}'", 
+    #             background_color = 'yellow', text_color = 'black',   
+    #                         )
 
     while True: 
         event , values = window.read()
@@ -346,7 +374,7 @@ def main():
             textbox = get_dragged_textbox(texts, (x_click, y_click), threshold) 
             if textbox: 
                 x, y = textbox.get_location() # current location of textbox 
-                # move the textbox as it is being dragged 
+                # move the textbox as it is being dragged  
                 new_location = (x_click, y_click)
                 move_text_box(textbox, new_location)  
                 move_text_box(texts_to_others[textbox], new_location) # this is the actual textbox we are moving on drag canvas  
@@ -373,7 +401,7 @@ def main():
                         text_on_drag_canvas = Text(location, canvas_drag)
                         # key value pairing for easy and efficient tracking when dragging event occurs.
                         texts_to_others[text_at_click_location] = text_on_drag_canvas
-                        texts.append(text_at_click_location) # append it to list for tracking 
+                        texts.append(text_at_click_location) # append it to list for tracking  
                     else:
                         
                         delete_text_box(text_at_click_location) 
@@ -429,13 +457,6 @@ def main():
         if event == "-TOGGLE-DRAG-MODE-":
             switch_tabs(drag_mode_button, drag_tab, no_drag_tab)
         
-        # EVENTS RELATED TO PERSISTENCE -- IN TESTING (BETA) MODE. 
-        if event == "save current canvas":
-            # save canvas into data structure for json 
-            saved_canvas = save_canvas(texts, lines_to_locs)
-            # convert saved_canvas into json and write to file for persistence 
-
-        
         if event == "clear canvas":
             if not saved_canvas:
                 saved_canvas = save_canvas(texts, lines_to_locs) # save their work just in case 
@@ -448,12 +469,13 @@ def main():
             lines_to_others = {} 
 
         if event in ('Open', "Save", "Save As"):
-            if event == 'Save':
+            if event == 'Save': 
                 if filename:
                     saved_canvas = save_canvas(texts, lines_to_locs)
                     write_file(filename, saved_canvas)
                 else:
                     sg.popup('There is no currently associated filename with your canvas.\n Please try "Saving as" your desired filename.')
+                    sg.popup("filname =", filename) 
             if event == 'Save As':
                 # save canvas into data structure for json 
                 saved_canvas = save_canvas(texts, lines_to_locs)
@@ -491,10 +513,12 @@ def main():
             user_input, get_selected_text_boxes(texts), 
             delete_button, connect_button
         )
-        window['-CUR-FILE-'].update(
-            f"Currently modifying file: '{filename.replace('.json', '')}'", 
-            background_color = 'yellow', text_color = 'black',  
-                            )
+        
+        if filename: 
+            window['-CUR-FILE-'].update(
+                f"Currently modifying file: '{filename.replace('.json', '')}'", 
+                background_color = 'yellow', text_color = 'black',  
+                                ) 
 
            
 
