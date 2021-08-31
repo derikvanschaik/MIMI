@@ -9,11 +9,11 @@ RETURN_CHAR = "\\"
 def get_text_box_at_location(click_location, text_boxes):
     x_click, y_click = click_location
     for text in text_boxes:
-        top_left, bott_right= text.get_bounding_coordinates()
+        top_left, bott_right= text.get_bounding_coordinates() 
         x_left, top_y = top_left 
         x_right, bott_y = bott_right
         # the user clicked on an already present textbox 
-        if x_click in range(x_left, x_right +1) and y_click in range(bott_y, top_y+1):
+        if x_click in range(x_left, x_right +1) and y_click in range(bott_y, top_y+1): 
             return text 
     return None # no textbox at given location 
 
@@ -25,7 +25,7 @@ def handle_canvas_click(click_location, text_boxes, user_input):
         is_selected = text_at_click_location.get_selected() # get the selected property 
         if is_selected:
             text_at_click_location.draw_selected_box() 
-            user_input.update(text_at_click_location.get_lines()) 
+            user_input.update(text_at_click_location.get_lines())  
         else:
             text_at_click_location.delete_selected_box() 
     else:
@@ -259,9 +259,10 @@ def load_history_dir(dirname, history_filename):
     except Exception as e: # there was an error in reading the filename -- no filename saved 
         return None 
 
-def load_last_saved_canvas(texts, texts_to_others, lines_to_locs, lines_to_others, canvas, canvas_drag, window, filename):
+def load_last_saved_canvas(texts, texts_to_others, lines_to_locs, lines_to_others, canvas, canvas_drag):
     last_modified_file = load_history_dir('/history', 'history.txt')   
     json_files = get_json_file_list()
+    filename = None 
     if last_modified_file:
         if last_modified_file.replace(".json", "") in json_files: 
             last_canvas = open_file(last_modified_file) 
@@ -270,10 +271,6 @@ def load_last_saved_canvas(texts, texts_to_others, lines_to_locs, lines_to_other
                 lines_to_locs, lines_to_others, canvas, canvas_drag 
             )
             filename = last_modified_file 
-            window['-CUR-FILE-'].update(
-                f"Currently modifying file: '{filename.replace('.json', '')}'", 
-                background_color = 'yellow', text_color = 'black',   
-                            )
     return filename 
 
 
@@ -285,11 +282,11 @@ def main():
     sg.theme_button_color(('black', 'white'))
     #layout widgets 
     canvas = sg.Graph(
-        (800, 600), (0,0), (500, 500), key='-CANVAS-',
+        (800, 400), (0,0), (500, 500), key='-CANVAS-',
         background_color='white', enable_events=True, 
         )
     canvas_drag = sg.Graph(
-        (800, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
+        (800, 400), (0,0), (500, 500), key='-CANVAS-DRAG-',
         background_color='white', enable_events=True,drag_submits=True,
         )
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
@@ -301,8 +298,8 @@ def main():
     clear_canvas_button = sg.Button("clear canvas")
     filename_output = sg.Text("Currently modifying file: (No File Saved Yet)", key='-CUR-FILE-') 
     user_input = sg.Input('', key="-INPUT-", enable_events=True, 
-                            background_color=sg.theme_background_color(),
-                            text_color=sg.theme_background_color(), 
+                            # background_color=sg.theme_background_color(),
+                            # text_color=sg.theme_background_color(), 
                           )
     menu_def = [['File', ['Open', 'Save', 'Save As']]]  
     menu = sg.Menu(menu_def) 
@@ -315,7 +312,7 @@ def main():
     window = sg.Window('carriage return tester', layout).finalize()
     # final bindings and widget modifications prior to event loop 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
-    user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
+    # user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
     canvas.set_focus() # we want focus away from input to stop a bug
     connect_button.update(disabled=True) 
     delete_button.update(disabled=True)
@@ -331,39 +328,25 @@ def main():
     filename = load_last_saved_canvas(
         texts, texts_to_others, lines_to_locs, 
         lines_to_others, canvas, 
-        canvas_drag, window, filename
+        canvas_drag
         )
-    print("just loaded canvas and filename is", filename) 
-    # load_last_saved_canvas()
-    # last_modified_file = load_history_dir('/history', 'history.txt')   
-    # json_files = get_json_file_list()
-    # if last_modified_file:
-    #     if last_modified_file.replace(".json", "") in json_files: 
-    #         last_canvas = open_file(last_modified_file) 
-    #         load_canvas(
-    #             last_canvas, texts, texts_to_others,
-    #             lines_to_locs, lines_to_others, canvas, canvas_drag 
-    #         )
-    #         filename = last_modified_file
-    #         window['-CUR-FILE-'].update(
-    #             f"Currently modifying file: '{filename.replace('.json', '')}'", 
-    #             background_color = 'yellow', text_color = 'black',   
-    #                         )
+    if filename:
+        window['-CUR-FILE-'].update(
+            f"Currently modifying file: [{filename.replace('.json', '')}]", 
+            background_color = 'yellow', text_color = 'black',   
+                    )
 
     while True: 
         event , values = window.read()
         if event == sg.WIN_CLOSED:
             # need to save filename here to load next session
-            with open(os.path.dirname(__file__)+"/history/history.txt", "w") as history_file:
+            with open(os.path.dirname(__file__)+"/history/history.txt", "w") as history_file: 
                 if filename:
                     history_file.write(filename) 
 
             break
-        if event == '-RETURN-CHARACTER-':
-            # append return character to current text 
-            window['-INPUT-'].update( 
-                values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
-            )
+
+
         if event == "-CANVAS-":
             location = values[event] # location of click
             handle_canvas_click(location, texts, user_input) 
@@ -387,12 +370,14 @@ def main():
             # we only want to execute this code when NOT in drag mode 
             if drag_mode_button.get_text() == "Drag mode: OFF": 
 
+                user_text = values['-INPUT-']
+
                 if event == "-INPUT--RETURN-CHARACTER-":
+                    user_text += RETURN_CHAR 
                     window['-INPUT-'].update( 
-                            values['-INPUT-'] + RETURN_CHAR # text box splits based on return char 
+                            values['-INPUT-'] + RETURN_CHAR  # text box splits based on return char 
                                 )
 
-                user_text = values['-INPUT-']
                 text_at_click_location = get_text_box_at_location(location, texts)
                 try:
                     if text_at_click_location is None: # no text at current location, user is trying to create a new textbox here. 
@@ -465,17 +450,16 @@ def main():
             canvas.erase()
             # re init all tracking data structures -- remove all references 
             texts = [] 
-            lines_to_locs = {}
-            lines_to_others = {} 
+            lines_to_locs = {} 
+            lines_to_others = {}   
 
-        if event in ('Open', "Save", "Save As"):
+        if event in ('Open', "Save", "Save As", "Delete File"): 
             if event == 'Save': 
                 if filename:
                     saved_canvas = save_canvas(texts, lines_to_locs)
                     write_file(filename, saved_canvas)
                 else:
                     sg.popup('There is no currently associated filename with your canvas.\n Please try "Saving as" your desired filename.')
-                    sg.popup("filname =", filename) 
             if event == 'Save As':
                 # save canvas into data structure for json 
                 saved_canvas = save_canvas(texts, lines_to_locs)
@@ -501,7 +485,7 @@ def main():
                         saved_canvas, texts, texts_to_others, 
                         lines_to_locs, lines_to_others,
                         canvas, canvas_drag
-                    )
+                    ) 
                 
 
 
@@ -514,12 +498,11 @@ def main():
             delete_button, connect_button
         )
         
-        if filename: 
-            window['-CUR-FILE-'].update(
-                f"Currently modifying file: '{filename.replace('.json', '')}'", 
-                background_color = 'yellow', text_color = 'black',  
-                                ) 
-
+        if filename:
+            window['-CUR-FILE-'].update( 
+                f"Currently modifying file: [{filename.replace('.json', '')}]", 
+                background_color = 'yellow', text_color = 'black'   
+                                )
            
 
 
