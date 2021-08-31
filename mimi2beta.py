@@ -91,7 +91,7 @@ def update_lines(figure, lines_to_locs, lines_to_others, canvas, canvas_drag, ol
         new_to_loc = (x_click, y_click)
     
     line_main, line_drag = draw_line(canvas, canvas_drag, new_from_loc, new_to_loc)
-    print("line main, line drag", line_main, line_drag) 
+    # print("line main, line drag", line_main, line_drag) 
     lines_to_others[line_main] = line_drag
     lines_to_locs[line_main] = (new_from_loc, new_to_loc)
 
@@ -104,7 +104,7 @@ def delete_lines_at_loc(canvas, canvas_drag, lines_to_others, lines_to_locs, loc
             del lines_to_others[figure] # remove reference
 
             if callbackargs:
-                print("in calll bak args") 
+                # print("in calll bak args") 
                 update_lines(figure, lines_to_locs, lines_to_others, canvas, canvas_drag, loc, *callbackargs) 
 
             del lines_to_locs[figure]  
@@ -143,7 +143,7 @@ def save_canvas(texts, lines_to_locs):
         tbox_rep['background_color'] = textbox.background_color
         tbox_rep['line_color'] = textbox.line_color
         tbox_rep['text_color'] = textbox.text_color 
-        saved_canvas['textboxes'].append( tbox_rep)
+        saved_canvas['textboxes'].append( tbox_rep) 
     
     for (from_loc, to_loc) in lines_to_locs.values():
         saved_canvas['lines'].append( [list(from_loc), list(to_loc) ]) # convert all tups to list for json
@@ -201,7 +201,10 @@ def get_json_file_list():
     return json_file_list  
 
 def select_files_window(file_list):
-    layout = [[sg.Listbox(file_list, key='-FILE-CHOICE-', size=(30, 20))], [sg.B('Open File')] ]  
+    if not file_list:
+        sg.popup("No files to open!")
+        return 
+    layout = [[sg.Listbox(file_list, key='-FILE-CHOICE-', size=(30, 20))], [sg.B('Open File')] ]   
     win = sg.Window('Select File', layout)
     selected_file = None 
     while True:
@@ -214,7 +217,27 @@ def select_files_window(file_list):
             selected_file = f"{values['-FILE-CHOICE-'][0]}.json" 
             break 
     win.close() 
-    return selected_file 
+    return selected_file
+
+def delete_files_window(file_list):
+    if not file_list:
+        sg.popup("No files to Delete!")
+        return 
+    listbox = sg.Listbox(file_list, key='-FILE-CHOICE-', size=(30, 20), select_mode=sg.LISTBOX_SELECT_MODE_MULTIPLE)
+    layout = [[listbox], [sg.B('Delete File(s)')] ]   
+    win = sg.Window('Select File to Delete', layout)
+    files_to_del = None 
+    while True:
+        event, values = win.read()
+        # print(event, values) 
+        if event in (sg.WIN_CLOSED, None):
+            break
+        if event == 'Delete File(s)':
+            files_to_del = values['-FILE-CHOICE-']
+            break 
+            
+    win.close()
+    return files_to_del 
 
 def save_file_as_window():
     current_file_list = get_json_file_list() 
@@ -301,7 +324,7 @@ def main():
                             # background_color=sg.theme_background_color(),
                             # text_color=sg.theme_background_color(), 
                           )
-    menu_def = [['File', ['Open', 'Save', 'Save As']]]  
+    menu_def = [['File', ['Open', 'Save', 'Save As','Delete File(s)']]]  
     menu = sg.Menu(menu_def) 
     layout = [
         [menu],  
@@ -453,7 +476,7 @@ def main():
             lines_to_locs = {} 
             lines_to_others = {}   
 
-        if event in ('Open', "Save", "Save As", "Delete File"): 
+        if event in ('Open', "Save", "Save As", "Delete File(s)"): 
             if event == 'Save': 
                 if filename:
                     saved_canvas = save_canvas(texts, lines_to_locs)
@@ -463,16 +486,17 @@ def main():
             if event == 'Save As':
                 # save canvas into data structure for json 
                 saved_canvas = save_canvas(texts, lines_to_locs)
-                filename = save_file_as_window() 
-                if filename: 
-                    filename += '.json' # user simply provides name, not the extension. 
+                filetosave = save_file_as_window() 
+                if filetosave: 
+                    filename = filetosave +'.json' # user simply provides name, not the extension. 
                     write_file(filename, saved_canvas) # write saved canvas to json  
             
             if event == 'Open':
                 json_files = get_json_file_list()
-                filename = select_files_window(json_files) 
-                print(filename) 
-                if filename: 
+                filetosave = select_files_window(json_files)   
+                # print(filename) 
+                if filetosave: 
+                    filename = filetosave 
                     saved_canvas = open_file(filename)# reference to us opening files 
                     # erase all figures from canvas
                     canvas_drag.erase()
@@ -485,9 +509,30 @@ def main():
                         saved_canvas, texts, texts_to_others, 
                         lines_to_locs, lines_to_others,
                         canvas, canvas_drag
-                    ) 
-                
-
+                    )
+            if event == "Delete File(s)": 
+                files_to_delete = delete_files_window(get_json_file_list() )
+                if files_to_delete:
+                    # add .json ext to each file in list
+                    files_to_delete = list(map(lambda filename: filename+'.json', files_to_delete))
+                    print("filename: ", filename)
+                    print("files to delete: ", files_to_delete)
+                    # we need to clear current canvas and re init tracker variables as
+                    # we just deleted the current file user is on 
+                    if filename in files_to_delete:
+                        # erase all figures from canvas
+                        canvas_drag.erase()
+                        canvas.erase()
+                        # re init all tracking data structures -- remove all references 
+                        texts = [] 
+                        lines_to_locs = {}
+                        lines_to_others = {}
+                        # delete current reference to now deleted file 
+                        filename = None
+                        print("filename", filename) 
+                    # delete files
+                    for file in files_to_delete:
+                        os.remove(f"{os.path.dirname(__file__)}/{file}") 
 
 
         # want to disable and enable buttons based on certain conditions
@@ -502,7 +547,12 @@ def main():
             window['-CUR-FILE-'].update( 
                 f"Currently modifying file: [{filename.replace('.json', '')}]", 
                 background_color = 'yellow', text_color = 'black'   
-                                )
+                )
+        else:
+            window['-CUR-FILE-'].update( 
+                f"Currently modifying file: (No File Saved Yet)", 
+                background_color = 'yellow', text_color = 'black'   
+                )
            
 
 
