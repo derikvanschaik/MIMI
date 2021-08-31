@@ -305,11 +305,11 @@ def main():
     sg.theme_button_color(('black', 'white'))
     #layout widgets 
     canvas = sg.Graph(
-        (800, 400), (0,0), (500, 500), key='-CANVAS-',
+        (800, 600), (0,0), (500, 500), key='-CANVAS-',
         background_color='white', enable_events=True, 
         )
     canvas_drag = sg.Graph(
-        (800, 400), (0,0), (500, 500), key='-CANVAS-DRAG-',
+        (800, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
         background_color='white', enable_events=True,drag_submits=True,
         )
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
@@ -321,8 +321,8 @@ def main():
     clear_canvas_button = sg.Button("clear canvas")
     filename_output = sg.Text("Currently modifying file: (No File Saved Yet)", key='-CUR-FILE-') 
     user_input = sg.Input('', key="-INPUT-", enable_events=True, 
-                            # background_color=sg.theme_background_color(),
-                            # text_color=sg.theme_background_color(), 
+                            background_color=sg.theme_background_color(),
+                            text_color=sg.theme_background_color(), 
                           )
     menu_def = [['File', ['Open', 'Save', 'Save As','Delete File(s)']]]  
     menu = sg.Menu(menu_def) 
@@ -335,7 +335,7 @@ def main():
     window = sg.Window('carriage return tester', layout).finalize()
     # final bindings and widget modifications prior to event loop 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
-    # user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
+    user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
     canvas.set_focus() # we want focus away from input to stop a bug
     connect_button.update(disabled=True) 
     delete_button.update(disabled=True)
