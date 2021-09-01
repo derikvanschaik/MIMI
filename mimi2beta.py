@@ -319,7 +319,7 @@ def main():
     delete_button = sg.Button("Delete") 
     drag_mode_button = sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-")
     clear_canvas_button = sg.Button("clear canvas")
-    filename_output = sg.Text("(No File Saved Yet)", key='-CUR-FILE-') 
+    filename_output = sg.Text("(No File Saved Yet)", key='-CUR-FILE-', background_color = 'yellow', text_color = 'black',) 
     user_input = sg.Input('', key="-INPUT-", enable_events=True, 
                             background_color=sg.theme_background_color(),
                             text_color=sg.theme_background_color(), 
@@ -333,18 +333,18 @@ def main():
     font_size_label = sg.Text("Font Size:", background_color= sg.theme_background_color(), text_color="black")
     font_color = sg.Combo(
          ['black', 'blue', 'red', 'green', 'yellow', 'brown',
-        'green', 'lime', 'pink'], 
+        'green', 'lime', 'pink', 'white'], 
         key='-TEXT-COLOR-', default_value='black',
         enable_events=True
         )
     box_bg_color = sg.Combo(
         ['black', 'blue', 'red', 'green', 'yellow', 'brown',
-        'green', 'lime', 'pink'], 
+        'green', 'lime', 'pink', 'white'], 
         key='-BOX-COLOR-', default_value='white',
         enable_events=True
         )
     font_color_label = sg.T("Font Color:", background_color= sg.theme_background_color(),text_color="black")
-    box_color_label = sg.T("Box Color", background_color= sg.theme_background_color(), text_color="black") 
+    box_color_label = sg.T("Box Color:", background_color= sg.theme_background_color(), text_color="black") 
     menu_def = [['File', ['Open', 'Save', 'Save As','Delete File(s)']]]  
     menu = sg.Menu(menu_def) 
     layout = [
@@ -359,7 +359,7 @@ def main():
         [tabs],
         [user_input]
             ]
-    window = sg.Window('carriage return tester', layout ).finalize()
+    window = sg.Window('MIMI', layout ).finalize()
     # final bindings and widget modifications prior to event loop 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
     user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
@@ -382,8 +382,7 @@ def main():
         )
     if filename:
         window['-CUR-FILE-'].update(
-            f"[{filename.replace('.json', '')}]", 
-            background_color = 'yellow', text_color = 'black',   
+            f"[{filename.replace('.json', '')}]",    
                     )
 
     while True: 
@@ -598,7 +597,6 @@ def main():
         else:
             window['-CUR-FILE-'].update( 
                 f"(No File Saved Yet)", 
-                background_color = None , text_color = 'white'   
                 )
         
 
