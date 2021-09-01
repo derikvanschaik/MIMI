@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 from text import Text
 import json
-import os 
+import os
 # GLOBAL CONSTANTS 
 RETURN_CHAR = "\\"
 
@@ -305,11 +305,11 @@ def main():
     sg.theme_button_color(('black', 'white'))
     #layout widgets 
     canvas = sg.Graph(
-        (800, 600), (0,0), (500, 500), key='-CANVAS-',
+        (890, 550), (0,0), (500, 500), key='-CANVAS-',
         background_color='white', enable_events=True, 
         )
     canvas_drag = sg.Graph(
-        (800, 600), (0,0), (500, 500), key='-CANVAS-DRAG-',
+        (890, 550), (0,0), (500, 500), key='-CANVAS-DRAG-',
         background_color='white', enable_events=True,drag_submits=True,
         )
     no_drag_tab = sg.Tab('Dragging Off', [[canvas]])
@@ -319,20 +319,47 @@ def main():
     delete_button = sg.Button("Delete") 
     drag_mode_button = sg.Button("Drag mode: OFF", key="-TOGGLE-DRAG-MODE-")
     clear_canvas_button = sg.Button("clear canvas")
-    filename_output = sg.Text("Currently modifying file: (No File Saved Yet)", key='-CUR-FILE-') 
+    filename_output = sg.Text("(No File Saved Yet)", key='-CUR-FILE-') 
     user_input = sg.Input('', key="-INPUT-", enable_events=True, 
                             background_color=sg.theme_background_color(),
                             text_color=sg.theme_background_color(), 
                           )
+    font_size_slider = sg.Slider(
+        range = (10, 50), default_value=15, orientation="horizontal", 
+        key = "-FONT-SIZE-", enable_events=True, 
+        background_color=sg.theme_background_color(),
+        text_color="black", 
+        )
+    font_size_label = sg.Text("Font Size:", background_color= sg.theme_background_color(), text_color="black")
+    font_color = sg.Combo(
+         ['black', 'blue', 'red', 'green', 'yellow', 'brown',
+        'green', 'lime', 'pink'], 
+        key='-TEXT-COLOR-', default_value='black',
+        enable_events=True
+        )
+    box_bg_color = sg.Combo(
+        ['black', 'blue', 'red', 'green', 'yellow', 'brown',
+        'green', 'lime', 'pink'], 
+        key='-BOX-COLOR-', default_value='white',
+        enable_events=True
+        )
+    font_color_label = sg.T("Font Color:", background_color= sg.theme_background_color(),text_color="black")
+    box_color_label = sg.T("Box Color", background_color= sg.theme_background_color(), text_color="black") 
     menu_def = [['File', ['Open', 'Save', 'Save As','Delete File(s)']]]  
     menu = sg.Menu(menu_def) 
     layout = [
         [menu],  
-        [drag_mode_button, connect_button, delete_button,clear_canvas_button, filename_output],  
+        [drag_mode_button, connect_button, delete_button,clear_canvas_button] + 
+        [
+          font_size_label,  font_size_slider, 
+          sg.Column([[font_color_label], [font_color]], key="-font-color-col-"),
+          sg.Column([[box_color_label], [box_bg_color]], key="-box-color-col-"), 
+        ],
+        [filename_output],  
         [tabs],
         [user_input]
             ]
-    window = sg.Window('carriage return tester', layout).finalize()
+    window = sg.Window('carriage return tester', layout ).finalize()
     # final bindings and widget modifications prior to event loop 
     user_input.bind('<Return>', '-RETURN-CHARACTER-') # make an event for the return character
     user_input.set_cursor(cursor_color=sg.theme_background_color() ) # now this element is virtually 'invisible' 
@@ -355,7 +382,7 @@ def main():
         )
     if filename:
         window['-CUR-FILE-'].update(
-            f"Currently modifying file: [{filename.replace('.json', '')}]", 
+            f"[{filename.replace('.json', '')}]", 
             background_color = 'yellow', text_color = 'black',   
                     )
 
@@ -532,28 +559,48 @@ def main():
                         print("filename", filename) 
                     # delete files
                     for file in files_to_delete:
-                        os.remove(f"{os.path.dirname(__file__)}/{file}") 
+                        os.remove(f"{os.path.dirname(__file__)}/{file}")
 
+        if event.endswith("-SIZE-") or event.endswith("-COLOR-"):  
+            selected_textboxes =  get_selected_text_boxes(texts)
+            for textbox in selected_textboxes:
+
+                if event == "-FONT-SIZE-":
+                    textbox.change_font_size(int(values[event]))
+                    texts_to_others[textbox].change_font_size(int(values[event]))
+
+                elif event == "-BOX-COLOR-":
+                    textbox.change_background_color(values[event])
+                    texts_to_others[textbox].change_background_color(values[event])
+
+                elif event == "-TEXT-COLOR-":
+                    textbox.change_text_color(values[event])
+                    texts_to_others[textbox].change_text_color(values[event])
+
+                delete_text_box(textbox)
+                delete_text_box(texts_to_others[textbox]) 
+                draw_text_box(textbox, None)
+                draw_text_box(texts_to_others[textbox], None)
 
         # want to disable and enable buttons based on certain conditions
         # so that the user can't fire certain events based on these conditions 
         enable_and_disable_buttons_and_inputs( 
             drag_mode_button.get_text(), 
             user_input, get_selected_text_boxes(texts), 
-            delete_button, connect_button
+            delete_button, connect_button, 
         )
         
         if filename:
             window['-CUR-FILE-'].update( 
-                f"Currently modifying file: [{filename.replace('.json', '')}]", 
+                f"[{filename.replace('.json', '')}]", 
                 background_color = 'yellow', text_color = 'black'   
                 )
         else:
             window['-CUR-FILE-'].update( 
-                f"Currently modifying file: (No File Saved Yet)", 
-                background_color = 'yellow', text_color = 'black'   
+                f"(No File Saved Yet)", 
+                background_color = None , text_color = 'white'   
                 )
-           
+        
 
 
     window.close()

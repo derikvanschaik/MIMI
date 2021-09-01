@@ -111,6 +111,10 @@ class Text:
         # may need to delete selected box as well 
         if self.selected_box_id:
             self.delete_selected_box()
+        #added this line here aug 31 4:57 pm for updating font size etc 
+        # makes bounding boxes wrap all the time
+        self.max_line_width = 0      
+
     
     def get_font_size(self):
         return self.font_size
